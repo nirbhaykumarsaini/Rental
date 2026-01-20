@@ -13,7 +13,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
-import { Product } from '@/types/product.types';
+import { Product } from '@/app/types/product.types';
 
 const mockProducts: Product[] = [
   {
