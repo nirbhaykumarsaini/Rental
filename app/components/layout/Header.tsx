@@ -1,15 +1,27 @@
+// app/components/layout/Header.tsx
 'use client';
 
 import {
   Search,
   Bell,
   ChevronDown,
-  Menu
+  Menu,
+  LogOut,
+  User,
+  Settings
 } from 'lucide-react';
 import { useSidebar } from '@/app/context/SidebarContext';
+import { useAuth } from '@/app/context/AuthContext';
 
 export default function Header() {
   const { toggleSidebar } = useSidebar();
+  const { user, logout } = useAuth();
+
+  const handleLogout = () => {
+    if (confirm('Are you sure you want to logout?')) {
+      logout();
+    }
+  };
 
   return (
     <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">
@@ -32,17 +44,58 @@ export default function Header() {
           />
         </div>
 
-        <button className="p-2 hover:bg-gray-100 rounded-full">
+        <button className="p-2 hover:bg-gray-100 rounded-full relative">
           <Bell className="w-5 h-5 text-gray-600" />
+          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
         </button>
 
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-blue-500 rounded-full"></div>
-          <div>
-            <p className="text-sm font-medium text-gray-900">John Doe</p>
-            <p className="text-xs text-gray-500">Admin</p>
+        <div className="flex items-center space-x-3 group relative">
+          <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+            <span className="text-white text-sm font-medium">
+              {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
+            </span>
           </div>
-          <ChevronDown className="w-4 h-4 text-gray-500" />
+          <div>
+            <p className="text-sm font-medium text-gray-900">
+              {user?.firstName} {user?.lastName}
+            </p>
+            <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
+          </div>
+          <ChevronDown className="w-4 h-4 text-gray-500 cursor-pointer" />
+          
+          {/* Dropdown Menu */}
+          <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+            <div className="px-4 py-3 border-b border-gray-100">
+              <p className="text-sm font-medium text-gray-900">{user?.firstName} {user?.lastName}</p>
+              <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+            </div>
+            
+            <a
+              href="/profile"
+              className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100"
+            >
+              <User className="w-4 h-4 mr-3 text-gray-400" />
+              My Profile
+            </a>
+            
+            <a
+              href="/settings"
+              className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100"
+            >
+              <Settings className="w-4 h-4 mr-3 text-gray-400" />
+              Account Settings
+            </a>
+            
+            <div className="border-t border-gray-100 mt-2 pt-2">
+              <button
+                onClick={handleLogout}
+                className="flex items-center w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50"
+              >
+                <LogOut className="w-4 h-4 mr-3" />
+                Logout
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </header>
