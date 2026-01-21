@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { CategoryList } from '@/app/components/categories/CategoryList';
 import { AddCategory } from '@/app/components/categories/AddCategory';
 import { Layers, Package, Plus } from 'lucide-react';
-import { Category } from '../types/category.types';
+import { Category, CategoryFormData } from '../types/category.types';
 
 export default function CategoriesPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -21,7 +21,7 @@ export default function CategoriesPage() {
     setIsAddModalOpen(true);
   };
 
-  const handleSubmitCategory = (categoryData: Partial<Category>) => {
+  const handleSubmitCategory = (categoryData: CategoryFormData) => {
     console.log('Category submitted:', categoryData);
     // Here you would typically make an API call
     if (editingCategory) {
