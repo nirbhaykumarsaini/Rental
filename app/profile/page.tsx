@@ -86,9 +86,7 @@ export default function ProfilePage() {
         currency: profileData.currency,
       });
       
-      if (updatedUser) {
         setIsEditing(false);
-      }
     } catch (error) {
       console.error('Failed to update profile:', error);
     } finally {
