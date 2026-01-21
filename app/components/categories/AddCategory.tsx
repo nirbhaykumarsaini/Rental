@@ -2,13 +2,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Category, CategoryFormData ,SubCategory } from '@/app/types/category.types';
+import { Category } from '@/app/types/category.types';
 import { X, Plus, Trash2, Palette, Hash } from 'lucide-react';
 
 interface AddCategoryProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (categoryData: CategoryFormData) => void;
+  onSubmit: (categoryData: Category) => void;
   editingCategory: Category | null;
 }
 
@@ -115,7 +115,7 @@ useEffect(() => {
 
   if (!formData.name || !formData.slug) return;
 
-  const categoryData: CategoryFormData = {
+  const categoryData: Category = {
     name: formData.name,
     description: formData.description,
     icon: formData.icon,
