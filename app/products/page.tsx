@@ -5,22 +5,23 @@ import { useState } from 'react';
 import { ProductList } from '@/app/components/products/ProductList';
 import { AddProduct } from '@/app/components/products/AddProduct';
 import { Package } from 'lucide-react';
+import { Product } from '../types/product.types';
 
 export default function ProductsPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   const handleAddProduct = () => {
     setEditingProduct(null);
     setIsAddModalOpen(true);
   };
 
-  const handleEditProduct = (product: any) => {
+  const handleEditProduct = (product: Product) => {
     setEditingProduct(product);
     setIsAddModalOpen(true);
   };
 
-  const handleSubmitProduct = (productData: any) => {
+  const handleSubmitProduct = (productData: Product) => {
     console.log('Product submitted:', productData);
     // Here you would typically make an API call
     if (editingProduct) {
@@ -39,7 +40,7 @@ export default function ProductsPage() {
             <Package className="w-6 h-6 text-blue-600" />
           </div>
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Products Management</h1>
+            <h1 className="text-2xl md:text-2xl font-bold text-gray-900">Products Management</h1>
             <p className="text-gray-500">Manage your product inventory and details</p>
           </div>
         </div>

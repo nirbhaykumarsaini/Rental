@@ -7,7 +7,7 @@ const deals = [
     location: '6096 Marjolaine Landing',
     dateTime: '12.09.2019 - 12.53 PM',
     piece: 423,
-    amount: '$34,295',
+    amount: '₹34,295',
     status: 'Delivered'
   },
   {
@@ -15,7 +15,7 @@ const deals = [
     location: '123 Main Street',
     dateTime: '15.09.2019 - 10.30 AM',
     piece: 215,
-    amount: '$25,800',
+    amount: '₹25,800',
     status: 'Processing'
   },
   {
@@ -23,7 +23,7 @@ const deals = [
     location: '456 Tech Park',
     dateTime: '18.09.2019 - 03.15 PM',
     piece: 89,
-    amount: '$58,420',
+    amount: '₹58,420',
     status: 'Delivered'
   },
   {
@@ -31,7 +31,7 @@ const deals = [
     location: '789 Shopping Mall',
     dateTime: '20.09.2019 - 09.45 AM',
     piece: 540,
-    amount: '$16,200',
+    amount: '₹16,200',
     status: 'Pending'
   },
 ];
@@ -48,7 +48,7 @@ export default function DealsTable() {
             <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Piece</th>
             <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Amount</th>
             <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Status</th>
-            <th className="text-left py-3 px-4 text-sm font-medium text-gray-600"></th>
+            <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Action</th>
           </tr>
         </thead>
         <tbody>

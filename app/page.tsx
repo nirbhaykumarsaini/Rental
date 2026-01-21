@@ -29,7 +29,7 @@ export default function Dashboard() {
             />
             <StatCard
               title="Total Sales"
-              value="$89,000"
+              value="₹89,000"
               change="4.3% Down from yesterday"
               changeType="down"
             />
@@ -52,7 +52,7 @@ export default function Dashboard() {
               </div>
 
               <div className="mb-4">
-                <p className="text-3xl font-bold text-gray-900">$64,366.77</p>
+                <p className="text-3xl font-bold text-gray-900">₹64,366.77</p>
               </div>
 
               <SalesChart />

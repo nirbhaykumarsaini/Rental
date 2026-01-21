@@ -1,18 +1,25 @@
-// components/layout/Header.tsx
+'use client';
+
 import {
-  TrendingUp,
-  TrendingDown,
-  MoreVertical,
   Search,
   Bell,
-  ChevronDown
+  ChevronDown,
+  Menu
 } from 'lucide-react';
+import { useSidebar } from '@/app/context/SidebarContext';
 
 export default function Header() {
+  const { toggleSidebar } = useSidebar();
+
   return (
     <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
+        <button 
+          onClick={toggleSidebar}
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+        >
+          <Menu className="w-5 h-5 text-gray-600" />
+        </button>
       </div>
 
       <div className="flex items-center space-x-4">
