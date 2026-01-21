@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Category, CategoryFormData } from '@/app/types/category.types';
+import { Category, CategoryFormData ,SubCategory } from '@/app/types/category.types';
 import { X, Plus, Trash2, Palette, Hash } from 'lucide-react';
 
 interface AddCategoryProps {
@@ -11,11 +11,6 @@ interface AddCategoryProps {
   onSubmit: (categoryData: CategoryFormData) => void;
   editingCategory: Category | null;
 }
-
-interface SubCategoryForm {
-  id: string;
-  name: string;
-};
 
 const colorOptions = [
   '#3B82F6', // Blue
@@ -36,7 +31,7 @@ export function AddCategory({ isOpen, onClose, onSubmit, editingCategory }: AddC
     slug: '',
     parentId: null,
   });
-  const [subCategories, setSubCategories] = useState<SubCategoryForm[]>([]);
+  const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
   const [newSubCategory, setNewSubCategory] = useState('');
 
   // Mock parent categories for dropdown

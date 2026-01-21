@@ -1,4 +1,9 @@
 // app/types/category.types.ts
+export interface SubCategory {
+  id: string;
+  name: string;
+}
+
 export interface Category {
   id: string;
   name: string;
@@ -7,7 +12,7 @@ export interface Category {
   color: string;
   slug: string;
   parentId: string | null;
-  subCategories?: string[];
+  subCategories?: SubCategory[];
   productCount: number;
   createdAt: Date;
   updatedAt: Date;
