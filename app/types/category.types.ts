@@ -7,8 +7,18 @@ export interface Category {
   color: string;
   slug: string;
   parentId: string | null;
-  subCategories?: Category[];
+  subCategories?: string[];
   productCount: number;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface CategoryFormData {
+  name: string;
+  description?: string;
+  icon?: string;
+  color: string;
+  slug: string;
+  parentId: string | null;
+  subCategories: string[];
 }

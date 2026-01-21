@@ -2,15 +2,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Category } from '@/app/types/category.types';
+import { Category, CategoryFormData } from '@/app/types/category.types';
 import { X, Plus, Trash2, Palette, Hash } from 'lucide-react';
 
 interface AddCategoryProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (categoryData: Partial<Category>) => void;
+  onSubmit: (categoryData: CategoryFormData) => void;
   editingCategory: Category | null;
 }
+
+interface SubCategoryForm {
+  id: string;
+  name: string;
+};
 
 const colorOptions = [
   '#3B82F6', // Blue
@@ -31,7 +36,7 @@ export function AddCategory({ isOpen, onClose, onSubmit, editingCategory }: AddC
     slug: '',
     parentId: null,
   });
-  const [subCategories, setSubCategories] = useState<Array<{id: string, name: string}>>([]);
+  const [subCategories, setSubCategories] = useState<SubCategoryForm[]>([]);
   const [newSubCategory, setNewSubCategory] = useState('');
 
   // Mock parent categories for dropdown
@@ -42,35 +47,39 @@ export function AddCategory({ isOpen, onClose, onSubmit, editingCategory }: AddC
     { id: '3', name: 'Home & Kitchen' },
   ];
 
-  useEffect(() => {
-    if (editingCategory) {
-      setFormData({
-        name: editingCategory.name,
-        description: editingCategory.description || '',
-        color: editingCategory.color,
-        slug: editingCategory.slug,
-        parentId: editingCategory.parentId,
-      });
-      // Set mock sub-categories for editing
-      setSubCategories(
-        editingCategory.subCategories?.map(sc => ({ id: sc.id, name: sc.name })) || []
-      );
-    } else {
-      resetForm();
-    }
-  }, [editingCategory]);
-
   const resetForm = () => {
+  setFormData({
+    name: '',
+    description: '',
+    color: '#3B82F6',
+    slug: '',
+    parentId: null,
+  });
+  setSubCategories([]);
+  setNewSubCategory('');
+};
+
+useEffect(() => {
+  if (editingCategory) {
     setFormData({
-      name: '',
-      description: '',
-      color: '#3B82F6',
-      slug: '',
-      parentId: null,
+      name: editingCategory.name,
+      description: editingCategory.description || '',
+      color: editingCategory.color,
+      slug: editingCategory.slug,
+      parentId: editingCategory.parentId,
     });
-    setSubCategories([]);
-    setNewSubCategory('');
-  };
+
+    setSubCategories(
+      editingCategory.subCategories?.map(sc => ({
+        id: sc.id,
+        name: sc.name,
+      })) || []
+    );
+  } else {
+    resetForm();
+  }
+}, [editingCategory]);
+
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -96,6 +105,7 @@ export function AddCategory({ isOpen, onClose, onSubmit, editingCategory }: AddC
   };
 
   const generateSlug = () => {
+    if (!formData.name) return;
     const slug = formData.name
       .toLowerCase()
       .replace(/[^\w\s-]/g, '')
@@ -106,17 +116,25 @@ export function AddCategory({ isOpen, onClose, onSubmit, editingCategory }: AddC
   };
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const categoryData = {
-      ...formData,
-      subCategories: subCategories.map(sc => sc.name),
-    };
-    
-    onSubmit(categoryData);
-    resetForm();
-    onClose();
+  e.preventDefault();
+
+  if (!formData.name || !formData.slug) return;
+
+  const categoryData: CategoryFormData = {
+    name: formData.name,
+    description: formData.description,
+    icon: formData.icon,
+    color: formData.color || '#3B82F6',
+    slug: formData.slug,
+    parentId: formData.parentId ?? null,
+    subCategories: subCategories.map(sc => sc.name),
   };
+
+  onSubmit(categoryData);
+  resetForm();
+  onClose();
+};
+
 
   if (!isOpen) return null;
 
