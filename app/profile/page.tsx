@@ -5,13 +5,9 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
 import { 
   User, 
-  Mail, 
-  Phone, 
-  MapPin, 
   Calendar,
   Globe,
   Briefcase,
-  Building,
   Edit2,
   Camera,
   Save,

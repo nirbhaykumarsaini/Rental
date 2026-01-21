@@ -36,6 +36,15 @@ export interface User {
   lastLogin?: Date;
   createdAt: Date;
   isVerified: boolean;
+  jobTitle:string;
+  department:string;
+  location:string;
+  bio:string;
+  timezone:string;
+  language:string;
+  currency:string;
+  dateFormat:string;
+  phone:string;
 }
 
 export interface AuthResponse {
