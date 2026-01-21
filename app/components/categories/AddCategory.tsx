@@ -2,13 +2,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Category } from '@/app/types/category.types';
+import { Category, CategoryFormData } from '@/app/types/category.types';
 import { X, Plus, Trash2, Palette, Hash } from 'lucide-react';
 
 interface AddCategoryProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (categoryData: Category) => void;
+  onSubmit: (categoryData: CategoryFormData) => void;
   editingCategory: Category | null;
 }
 
@@ -31,7 +31,7 @@ export function AddCategory({ isOpen, onClose, onSubmit, editingCategory }: AddC
     slug: '',
     parentId: null,
   });
-  const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
+  const [subCategories, setSubCategories] = useState<Array<{id: string, name: string}>>([]);
   const [newSubCategory, setNewSubCategory] = useState('');
 
   // Mock parent categories for dropdown
@@ -100,7 +100,7 @@ useEffect(() => {
   };
 
   const generateSlug = () => {
-    if (!formData.name) return;
+    if(!formData.name) return;
     const slug = formData.name
       .toLowerCase()
       .replace(/[^\w\s-]/g, '')
@@ -115,7 +115,7 @@ useEffect(() => {
 
   if (!formData.name || !formData.slug) return;
 
-  const categoryData: Category = {
+  const categoryData: CategoryFormData = {
     name: formData.name,
     description: formData.description,
     icon: formData.icon,
