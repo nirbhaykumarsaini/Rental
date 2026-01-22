@@ -3,13 +3,16 @@
 
 import { useState, useEffect } from 'react';
 import { Category, CategoryFormData } from '@/app/types/category.types';
-import { X, Plus, Trash2, Palette, Hash } from 'lucide-react';
+import { X, Plus, Trash2, Palette, Hash, Loader2, Check } from 'lucide-react';
+import categoryService from '@/app/services/categoryService';
+import { Types } from 'mongoose';
 
 interface AddCategoryProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (categoryData: CategoryFormData) => void;
   editingCategory: Category | null;
+  parentCategories: Category[];
 }
 
 const colorOptions = [
@@ -23,62 +26,79 @@ const colorOptions = [
   '#F97316', // Orange
 ];
 
-export function AddCategory({ isOpen, onClose, onSubmit, editingCategory }: AddCategoryProps) {
+export function AddCategory({ isOpen, onClose, onSubmit, editingCategory, parentCategories }: AddCategoryProps) {
   const [formData, setFormData] = useState<Partial<Category>>({
     name: '',
     description: '',
     color: '#3B82F6',
     slug: '',
     parentId: null,
+    sortOrder: 0,
+    isFeatured: false,
+    isActive: true,
   });
   const [subCategories, setSubCategories] = useState<Array<{id: string, name: string}>>([]);
   const [newSubCategory, setNewSubCategory] = useState('');
-
-  // Mock parent categories for dropdown
-  const parentCategories = [
-    { id: null, name: 'No Parent (Main Category)' },
-    { id: '1', name: 'Electronics' },
-    { id: '2', name: 'Fashion' },
-    { id: '3', name: 'Home & Kitchen' },
-  ];
+  const [loading, setLoading] = useState(false);
+  const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
+  const [checkingSlug, setCheckingSlug] = useState(false);
+  const [errors, setErrors] = useState<string[]>([]);
 
   const resetForm = () => {
-  setFormData({
-    name: '',
-    description: '',
-    color: '#3B82F6',
-    slug: '',
-    parentId: null,
-  });
-  setSubCategories([]);
-  setNewSubCategory('');
-};
-
-useEffect(() => {
-  if (editingCategory) {
     setFormData({
-      name: editingCategory.name,
-      description: editingCategory.description || '',
-      color: editingCategory.color,
-      slug: editingCategory.slug,
-      parentId: editingCategory.parentId,
+      name: '',
+      description: '',
+      color: '#3B82F6',
+      slug: '',
+      parentId: null,
+      sortOrder: 0,
+      isFeatured: false,
+      isActive: true,
     });
+    setSubCategories([]);
+    setNewSubCategory('');
+    setSlugAvailable(null);
+    setErrors([]);
+  };
 
-    setSubCategories(
-      editingCategory.subCategories?.map(sc => ({
-        id: sc.id,
-        name: sc.name,
-      })) || []
-    );
-  } else {
-    resetForm();
-  }
-}, [editingCategory]);
+  useEffect(() => {
+    if (editingCategory) {
+      setFormData({
+        name: editingCategory.name,
+        description: editingCategory.description || '',
+        color: editingCategory.color,
+        slug: editingCategory.slug,
+        parentId: editingCategory.parentId,
+        sortOrder: editingCategory.sortOrder || 0,
+        isFeatured: editingCategory.isFeatured || false,
+        isActive: editingCategory.isActive !== undefined ? editingCategory.isActive : true,
+      });
 
+      setSubCategories(
+        editingCategory.subCategories?.map(sc => ({
+          id: sc.id,
+          name: sc.name,
+        })) || []
+      );
+    } else {
+      resetForm();
+    }
+  }, [editingCategory]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target;
+    
+    if (type === 'checkbox') {
+      const checkbox = e.target as HTMLInputElement;
+      setFormData(prev => ({ ...prev, [name]: checkbox.checked }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
+
+    // Clear slug availability when slug changes
+    if (name === 'slug') {
+      setSlugAvailable(null);
+    }
   };
 
   const handleColorSelect = (color: string) => {
@@ -108,28 +128,87 @@ useEffect(() => {
       .replace(/--+/g, '-')
       .trim();
     setFormData(prev => ({ ...prev, slug }));
+    setSlugAvailable(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-  e.preventDefault();
-
-  if (!formData.name || !formData.slug) return;
-
-  const categoryData: CategoryFormData = {
-    name: formData.name,
-    description: formData.description,
-    icon: formData.icon,
-    color: formData.color || '#3B82F6',
-    slug: formData.slug,
-    parentId: formData.parentId ?? null,
-    subCategories: subCategories.map(sc => sc.name),
+  const checkSlugAvailability = async () => {
+    if (!formData.slug) return;
+    
+    try {
+      setCheckingSlug(true);
+      const response = await categoryService.checkSlugAvailability(
+        formData.slug,
+        editingCategory?.id
+      );
+      
+      if (response.status && response.data) {
+        setSlugAvailable(response.data.available);
+        if (!response.data.available) {
+          setErrors(['Slug is already taken. Please choose another.']);
+        } else {
+          setErrors([]);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking slug:', error);
+    } finally {
+      setCheckingSlug(false);
+    }
   };
 
-  onSubmit(categoryData);
-  resetForm();
-  onClose();
-};
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validate form
+    const validation = categoryService.validateCategoryData({
+      name: formData.name || '',
+      slug: formData.slug || '',
+      color: formData.color || '#3B82F6',
+      description: formData.description,
+      parentId: formData.parentId,
+      subCategories: subCategories.map(sc => sc.name),
+    });
 
+    if (!validation.valid) {
+      setErrors(validation.errors);
+      return;
+    }
+
+    // Check slug availability if not already checked
+    if (slugAvailable === null) {
+      await checkSlugAvailability();
+      if (!slugAvailable) {
+        return;
+      }
+    }
+
+    // Check slug availability for new categories
+    if (!editingCategory && slugAvailable === false) {
+      setErrors(['Slug is already taken. Please choose another.']);
+      return;
+    }
+
+    const categoryData: CategoryFormData = {
+      name: formData.name || '',
+      description: formData.description,
+      color: formData.color || '#3B82F6',
+      slug: formData.slug || '',
+      parentId: formData.parentId ?? null,
+      sortOrder: formData.sortOrder || 0,
+      isFeatured: formData.isFeatured || false,
+      isActive: formData.isActive !== undefined ? formData.isActive : true,
+      subCategories: subCategories.map(sc => sc.name),
+    };
+
+    setLoading(true);
+    try {
+      await onSubmit(categoryData);
+      resetForm();
+      onClose();
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -154,10 +233,23 @@ useEffect(() => {
             <button
               onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              disabled={loading}
             >
               <X className="w-5 h-5 text-gray-500" />
             </button>
           </div>
+
+          {/* Error Messages */}
+          {errors.length > 0 && (
+            <div className="mx-6 mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <h3 className="text-sm font-medium text-red-800 mb-2">Please fix the following errors:</h3>
+              <ul className="text-sm text-red-700 list-disc pl-5 space-y-1">
+                {errors.map((error, index) => (
+                  <li key={index}>{error}</li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="p-6">
@@ -175,6 +267,7 @@ useEffect(() => {
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   placeholder="e.g., Electronics"
                   required
+                  disabled={loading}
                 />
               </div>
 
@@ -183,22 +276,23 @@ useEffect(() => {
                 <label className="block text-sm font-medium text-gray-700">
                   Category Color
                 </label>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 mb-2">
                   <div 
                     className="w-6 h-6 rounded-full border border-gray-300"
                     style={{ backgroundColor: formData.color }}
                   />
                   <span className="text-sm text-gray-500">{formData.color}</span>
                 </div>
-                <div className="flex flex-wrap gap-2 mt-2">
+                <div className="flex flex-wrap gap-2">
                   {colorOptions.map(color => (
                     <button
                       key={color}
                       type="button"
                       onClick={() => handleColorSelect(color)}
+                      disabled={loading}
                       className={`w-6 h-6 rounded-full border-2 ${
                         formData.color === color ? 'border-gray-800' : 'border-transparent'
-                      }`}
+                      } disabled:opacity-50`}
                       style={{ backgroundColor: color }}
                       title={color}
                     />
@@ -210,12 +304,13 @@ useEffect(() => {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="block text-sm font-medium text-gray-700">
-                    Slug
+                    Slug *
                   </label>
                   <button
                     type="button"
                     onClick={generateSlug}
-                    className="text-sm text-indigo-600 hover:text-indigo-700"
+                    className="text-sm text-indigo-600 hover:text-indigo-700 disabled:opacity-50"
+                    disabled={loading || !formData.name}
                   >
                     Generate from name
                   </button>
@@ -227,10 +322,27 @@ useEffect(() => {
                     name="slug"
                     value={formData.slug}
                     onChange={handleInputChange}
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    onBlur={checkSlugAvailability}
+                    className={`w-full pl-10 pr-10 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+                      slugAvailable === false 
+                        ? 'border-red-300' 
+                        : slugAvailable === true 
+                          ? 'border-green-300' 
+                          : 'border-gray-300'
+                    }`}
                     placeholder="electronics"
+                    required
+                    disabled={loading}
                   />
+                  {checkingSlug ? (
+                    <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 animate-spin" />
+                  ) : slugAvailable === true ? (
+                    <Check className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-green-500" />
+                  ) : null}
                 </div>
+                {slugAvailable === false && (
+                  <p className="text-sm text-red-600">This slug is already taken</p>
+                )}
               </div>
 
               {/* Parent Category */}
@@ -240,16 +352,71 @@ useEffect(() => {
                 </label>
                 <select
                   name="parentId"
-                  value={formData.parentId || ''}
+                  value={formData.parentId}
                   onChange={handleInputChange}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  disabled={loading}
                 >
-                  {parentCategories.map(category => (
-                    <option key={category.id || 'none'} value={category.id || ''}>
-                      {category.name}
-                    </option>
-                  ))}
+                  <option value="">No Parent (Main Category)</option>
+                  {parentCategories
+                    .filter(cat => !editingCategory || cat.id !== editingCategory.id)
+                    .map(category => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))
+                  }
                 </select>
+              </div>
+
+              {/* Sort Order */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Sort Order
+                </label>
+                <input
+                  type="number"
+                  name="sortOrder"
+                  value={formData.sortOrder}
+                  onChange={handleInputChange}
+                  min="0"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  placeholder="0"
+                  disabled={loading}
+                />
+                <p className="text-xs text-gray-500">Lower numbers appear first</p>
+              </div>
+
+              {/* Featured & Active */}
+              <div className="space-y-4">
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    name="isFeatured"
+                    checked={formData.isFeatured || false}
+                    onChange={handleInputChange}
+                    id="isFeatured"
+                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                    disabled={loading}
+                  />
+                  <label htmlFor="isFeatured" className="text-sm font-medium text-gray-700">
+                    Featured Category
+                  </label>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    name="isActive"
+                    checked={formData.isActive !== undefined ? formData.isActive : true}
+                    onChange={handleInputChange}
+                    id="isActive"
+                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                    disabled={loading}
+                  />
+                  <label htmlFor="isActive" className="text-sm font-medium text-gray-700">
+                    Active Category
+                  </label>
+                </div>
               </div>
 
               {/* Description (Full width) */}
@@ -264,6 +431,7 @@ useEffect(() => {
                   rows={3}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   placeholder="Describe this category..."
+                  disabled={loading}
                 />
               </div>
 
@@ -287,11 +455,13 @@ useEffect(() => {
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     placeholder="Add a sub-category"
                     onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddSubCategory())}
+                    disabled={loading}
                   />
                   <button
                     type="button"
                     onClick={handleAddSubCategory}
-                    className="px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 flex items-center gap-2"
+                    className="px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 flex items-center gap-2 disabled:opacity-50"
+                    disabled={loading}
                   >
                     <Plus className="w-4 h-4" />
                     Add
@@ -313,7 +483,8 @@ useEffect(() => {
                         <button
                           type="button"
                           onClick={() => handleRemoveSubCategory(subCategory.id)}
-                          className="p-1 text-gray-400 hover:text-red-600"
+                          className="p-1 text-gray-400 hover:text-red-600 disabled:opacity-50"
+                          disabled={loading}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -332,15 +503,26 @@ useEffect(() => {
                   resetForm();
                   onClose();
                 }}
-                className="px-6 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                className="px-6 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50"
+                disabled={loading}
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-6 py-2.5 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                disabled={loading || slugAvailable === false}
+                className="px-6 py-2.5 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[120px]"
               >
-                {editingCategory ? 'Update Category' : 'Create Category'}
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : editingCategory ? (
+                  'Update Category'
+                ) : (
+                  'Create Category'
+                )}
               </button>
             </div>
           </form>

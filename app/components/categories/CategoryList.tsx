@@ -10,136 +10,24 @@ import {
   ChevronRight, 
   Folder,
   FolderOpen,
-  MoreVertical
+  Loader2
 } from 'lucide-react';
 
-// Mock data
-const mockCategories: Category[] = [
-  {
-    id: '1',
-    name: 'Electronics',
-    description: 'All electronic gadgets and devices',
-    color: '#3B82F6',
-    slug: 'electronics',
-    parentId: null,
-    productCount: 245,
-    createdAt: new Date('2024-01-15'),
-    updatedAt: new Date('2024-02-20'),
-    subCategories: [
-      {
-        id: '1-1',
-        name: 'Smartphones',
-        description: 'Mobile phones and accessories',
-        color: '#60A5FA',
-        slug: 'smartphones',
-        parentId: '1',
-        productCount: 120,
-        createdAt: new Date('2024-01-16'),
-        updatedAt: new Date('2024-02-21'),
-      },
-      {
-        id: '1-2',
-        name: 'Laptops',
-        description: 'Computers and laptops',
-        color: '#60A5FA',
-        slug: 'laptops',
-        parentId: '1',
-        productCount: 85,
-        createdAt: new Date('2024-01-17'),
-        updatedAt: new Date('2024-02-22'),
-      },
-    ]
-  },
-  {
-    id: '2',
-    name: 'Fashion',
-    description: 'Clothing and accessories',
-    color: '#8B5CF6',
-    slug: 'fashion',
-    parentId: null,
-    productCount: 180,
-    createdAt: new Date('2024-01-10'),
-    updatedAt: new Date('2024-02-15'),
-    subCategories: [
-      {
-        id: '2-1',
-        name: 'Men',
-        description: 'Men\'s clothing',
-        color: '#A78BFA',
-        slug: 'men-fashion',
-        parentId: '2',
-        productCount: 75,
-        createdAt: new Date('2024-01-11'),
-        updatedAt: new Date('2024-02-16'),
-      },
-      {
-        id: '2-2',
-        name: 'Women',
-        description: 'Women\'s clothing',
-        color: '#A78BFA',
-        slug: 'women-fashion',
-        parentId: '2',
-        productCount: 105,
-        createdAt: new Date('2024-01-12'),
-        updatedAt: new Date('2024-02-17'),
-      },
-    ]
-  },
-  {
-    id: '3',
-    name: 'Home & Kitchen',
-    description: 'Home appliances and kitchenware',
-    color: '#10B981',
-    slug: 'home-kitchen',
-    parentId: null,
-    productCount: 320,
-    createdAt: new Date('2024-01-05'),
-    updatedAt: new Date('2024-02-10'),
-    subCategories: [
-      {
-        id: '3-1',
-        name: 'Kitchenware',
-        description: 'Cooking utensils and tools',
-        color: '#34D399',
-        slug: 'kitchenware',
-        parentId: '3',
-        productCount: 150,
-        createdAt: new Date('2024-01-06'),
-        updatedAt: new Date('2024-02-11'),
-      },
-      {
-        id: '3-2',
-        name: 'Furniture',
-        description: 'Home furniture',
-        color: '#34D399',
-        slug: 'furniture',
-        parentId: '3',
-        productCount: 90,
-        createdAt: new Date('2024-01-07'),
-        updatedAt: new Date('2024-02-12'),
-      },
-      {
-        id: '3-3',
-        name: 'Home Decor',
-        description: 'Decoration items',
-        color: '#34D399',
-        slug: 'home-decor',
-        parentId: '3',
-        productCount: 80,
-        createdAt: new Date('2024-01-08'),
-        updatedAt: new Date('2024-02-13'),
-      },
-    ]
-  },
-];
-
 interface CategoryListProps {
+  categories: Category[];
+  loading: boolean;
   onEditCategory: (category: Category) => void;
+  onDeleteCategory: (categoryId: string) => void;
 }
 
-export function CategoryList({ onEditCategory }: CategoryListProps) {
-  const [categories, setCategories] = useState<Category[]>(mockCategories);
-  const [expandedCategories, setExpandedCategories] = useState<string[]>(['1', '2', '3']);
+export function CategoryList({ 
+  categories, 
+  loading, 
+  onEditCategory, 
+  onDeleteCategory 
+}: CategoryListProps) {
+  const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const toggleCategory = (categoryId: string) => {
     setExpandedCategories(prev =>
@@ -149,12 +37,12 @@ export function CategoryList({ onEditCategory }: CategoryListProps) {
     );
   };
 
-  const handleDeleteCategory = (categoryId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (confirm('Are you sure you want to delete this category?')) {
-      console.log('Delete category:', categoryId);
-      // In a real app, you would make an API call here
-      setCategories(prev => prev.filter(cat => cat.id !== categoryId));
+  const handleDelete = async (categoryId: string) => {
+    try {
+      setDeletingId(categoryId);
+      await onDeleteCategory(categoryId);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -168,7 +56,8 @@ export function CategoryList({ onEditCategory }: CategoryListProps) {
     isParent: boolean;
   }) => {
     const hasSubCategories = category.subCategories && category.subCategories.length > 0;
-    const isExpanded = expandedCategories.includes(category.id);
+    const isExpanded = expandedCategories.includes(category._id);
+    const isDeleting = deletingId === category._id;
 
     return (
       <>
@@ -181,8 +70,9 @@ export function CategoryList({ onEditCategory }: CategoryListProps) {
           <div className="flex items-center space-x-3 flex-1">
             {hasSubCategories ? (
               <button
-                onClick={() => toggleCategory(category.id)}
+                onClick={() => toggleCategory(category._id)}
                 className="p-1 hover:bg-gray-200 rounded"
+                disabled={isDeleting}
               >
                 {isExpanded ? (
                   <ChevronDown className="w-4 h-4 text-gray-500" />
@@ -191,7 +81,7 @@ export function CategoryList({ onEditCategory }: CategoryListProps) {
                 )}
               </button>
             ) : (
-              <div className="w-6" /> // Spacer for alignment
+              <div className="w-6" />
             )}
             
             <div 
@@ -210,7 +100,19 @@ export function CategoryList({ onEditCategory }: CategoryListProps) {
             )}
             
             <div className="flex-1">
-              <h3 className="font-medium text-gray-900">{category.name}</h3>
+              <div className="flex items-center space-x-3">
+                <h3 className="font-medium text-gray-900">{category.name}</h3>
+                {!category.isActive && (
+                  <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full">
+                    Inactive
+                  </span>
+                )}
+                {category.isFeatured && (
+                  <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
+                    Featured
+                  </span>
+                )}
+              </div>
               {category.description && (
                 <p className="text-sm text-gray-500">{category.description}</p>
               )}
@@ -219,23 +121,26 @@ export function CategoryList({ onEditCategory }: CategoryListProps) {
 
           <div className="flex items-center space-x-4">
             <span className="text-sm text-gray-500">
-              {category.productCount} products
+              {category.productCount || 0} products
             </span>
             <div className="flex items-center space-x-2">
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEditCategory(category);
-                }}
-                className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
+                onClick={() => onEditCategory(category)}
+                disabled={isDeleting}
+                className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Edit2 className="w-4 h-4" />
               </button>
               <button
-                onClick={(e) => handleDeleteCategory(category.id, e)}
-                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                onClick={() => handleDelete(category._id)}
+                disabled={isDeleting}
+                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Trash2 className="w-4 h-4" />
+                {isDeleting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4" />
+                )}
               </button>
             </div>
           </div>
@@ -244,7 +149,7 @@ export function CategoryList({ onEditCategory }: CategoryListProps) {
         {/* Render sub-categories if expanded */}
         {hasSubCategories && isExpanded && category.subCategories?.map(subCategory => (
           <CategoryItem
-            key={subCategory.id}
+            key={subCategory._id}
             category={subCategory}
             level={level + 1}
             isParent={false}
@@ -254,19 +159,40 @@ export function CategoryList({ onEditCategory }: CategoryListProps) {
     );
   };
 
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl shadow border border-gray-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900">All Categories</h2>
+          <p className="text-sm text-gray-500">Loading categories...</p>
+        </div>
+        <div className="py-16 text-center">
+          <Loader2 className="w-8 h-8 text-gray-400 animate-spin mx-auto" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-xl shadow border border-gray-200 overflow-hidden">
       {/* Header */}
       <div className="px-6 py-4 border-b border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900">All Categories</h2>
-        <p className="text-sm text-gray-500">Manage and organize your product categories</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">All Categories</h2>
+            <p className="text-sm text-gray-500">Manage and organize your product categories</p>
+          </div>
+          <div className="text-sm text-gray-500">
+            {categories.length} categories
+          </div>
+        </div>
       </div>
 
       {/* Categories List */}
       <div className="divide-y divide-gray-100">
         {categories.map(category => (
           <CategoryItem
-            key={category.id}
+            key={category._id}
             category={category}
             level={0}
             isParent={true}
@@ -275,7 +201,7 @@ export function CategoryList({ onEditCategory }: CategoryListProps) {
       </div>
 
       {/* Empty State */}
-      {categories.length === 0 && (
+      {categories.length === 0 && !loading && (
         <div className="py-16 text-center">
           <Folder className="w-12 h-12 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No categories yet</h3>

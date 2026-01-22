@@ -1,16 +1,22 @@
-// app/types/category.types.ts
-export interface Category {
-  id: string;
-  name: string;
-  description?: string;
-  icon?: string;
-  color: string;
-  slug: string;
-  parentId: string | null;
+import { ICategoryDocument } from '@/app/models/Category';
+import { Model, Types } from 'mongoose';
+
+export interface Category extends ICategoryDocument {
   subCategories?: Category[];
   productCount: number;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
-export interface CategoryFormData { name: string; description?: string; icon?: string; color: string; slug: string; parentId: string | null; subCategories: string[]; }
+export interface CategoryFormData {
+  name: string;
+  description?: string;
+  slug: string;
+  parentId?:Types.ObjectId | undefined | null  | string ;
+  icon?: string;
+  color: string;
+  sortOrder?: number;
+  isFeatured?: boolean;
+  isActive?: boolean;
+  metaTitle?: string;
+  metaDescription?: string;
+  subCategories?: string[];
+}
