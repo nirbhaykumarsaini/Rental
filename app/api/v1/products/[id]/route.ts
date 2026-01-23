@@ -201,8 +201,8 @@ export async function PUT(
     
     // Update status based on inventory if has variants
     if (product.hasVariants && product.variants.length > 0) {
-      const totalInventory = product.variants.reduce((total, variant) => {
-        return total + (variant.sizes || []).reduce((sum, size) => sum + (size.inventory || 0), 0);
+      const totalInventory = product.variants.reduce((total: number, variant: { sizes: string; }) => {
+        return total + (variant.sizes || []).reduce((sum:number, size:string) => sum + (size.inventory || 0), 0);
       }, 0);
       
       if (totalInventory === 0) {
