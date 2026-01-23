@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   try {
     await connectDB();
 
-    const hierarchy = await Category.find();
+    const hierarchy = await Category.findHierarchy();
 
     return NextResponse.json({
       status: true,

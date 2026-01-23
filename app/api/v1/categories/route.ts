@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
 
     // For hierarchy view
     if (withSubcategories && parentId === 'null') {
-      const hierarchy = await Category.findHierarchy();
+      const hierarchy = await Category.find();
       return NextResponse.json({
         status: true,
         data: hierarchy,
