@@ -1,12 +1,12 @@
-// D:\B2B\app\api\v1\user\auth\login\route.ts
+// D:\B2B\app\api\v1\user\auth\resend-otp\route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/app/config/db';
 import User from '@/app/models/User';
 import APIError from '@/app/lib/errors/APIError';
 import { errorHandler } from '@/app/lib/errors/errorHandler';
-import { registerSchema } from '@/app/utils/validation';
+import { resendOtpSchema } from '@/app/utils/validation';
 
-// POST - LOGIN (Send OTP)
+// POST - RESEND OTP
 export async function POST(request: NextRequest) {
   try {
     await connectDB();
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     // Validate request body
-    const validationResult = registerSchema.safeParse(body);
+    const validationResult = resendOtpSchema.safeParse(body);
     
     if (!validationResult.success) {
       const errors = validationResult.error.errors.map(err => err.message).join(', ');
@@ -28,10 +28,10 @@ export async function POST(request: NextRequest) {
     const user = await User.findOne({ mobile });
 
     if (!user) {
-      throw new APIError('User not found. Please register first', 404);
+      throw new APIError('User not found', 404);
     }
 
-    // Generate OTP
+    // Generate new OTP
     const otp = '1234'; // Fixed OTP for now
     const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 

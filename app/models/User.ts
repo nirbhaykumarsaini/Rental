@@ -1,63 +1,54 @@
-import mongoose, { Document, Model, Schema } from 'mongoose';
-import bcrypt from 'bcryptjs';
+// D:\B2B\app\models\User.ts
+import mongoose, { Document, Model, Schema } from "mongoose";
 
-// Interface for Admin data
-export interface IAdmin {
-  username: string;
-  password: string;
-  role?: 'admin';
-  createdAt?: Date;
-  updatedAt?: Date;
+export interface IUser {
+  name?: string;
+  email?: string;
+  mobile: string;
+  otp?: string;
+  otpExpiresAt?: Date;
+  isProfileComplete: boolean;
 }
 
-// Interface for Admin document with methods
-export interface IAdminDocument extends IAdmin, Document {
-  comparePassword(candidatePassword: string): Promise<boolean>;
-}
+export interface IUserDocument extends IUser, Document {}
 
-// Admin Schema
-const adminSchema = new Schema<IAdminDocument, Model<IAdminDocument>>(
+const userSchema = new Schema<IUserDocument>(
   {
-    username: { 
-      type: String, 
-      required: [true, 'Username is required'],
-      trim: true,
-      unique: true,
-      lowercase: true,
-      minlength: [3, 'Username must be at least 3 characters long']
-    },
-    password: { 
+    name: {
       type: String,
-      required: [true, 'Password is required'],
-      minlength: [6, 'Password must be at least 6 characters long'],
-      select: false 
+      trim: true,
+      minlength: [3, "Name must be at least 3 characters long"],
     },
-    role: { 
-      type: String, 
-      enum: ['admin'], 
-      default: 'admin' 
-    }
+    mobile: {
+      type: String,
+      required: [true, "Mobile number is required"],
+      unique: true,
+      match: [/^[0-9]{10}$/, "Please enter a valid 10-digit mobile number"],
+    },
+    email: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      match: [/^\S+@\S+\.\S+$/, "Please enter a valid email address"],
+    },
+    otp: {
+      type: String,
+      default: null,
+    },
+    otpExpiresAt: {
+      type: Date,
+      default: null,
+    },
+    isProfileComplete: {
+      type: Boolean,
+      default: false,
+    },
   },
-  { 
+  {
     timestamps: true,
   }
 );
 
-// Hash password before saving
-adminSchema.pre('save', async function () {
-  if (!this.isModified('password')) return;
-  
-  this.password = await bcrypt.hash(this.password, 12);
-});
+const User = mongoose.models.User || mongoose.model<IUserDocument>("User", userSchema);
 
-// Method to compare passwords
-adminSchema.methods.comparePassword = async function (
-  candidatePassword: string
-): Promise<boolean> {
-  return await bcrypt.compare(candidatePassword, this.password);
-};
-
-// Export the model (handling Next.js hot reload)
-const Admin = mongoose.models.Admin || mongoose.model<IAdminDocument>('Admin', adminSchema);
-
-export default Admin;
+export default User;

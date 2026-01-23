@@ -1,3 +1,4 @@
+// D:\B2B\app\lib\errors\APIError.ts
 export default class APIError extends Error {
   status: boolean;
   statusCode: number; // Add statusCode for HTTP status
