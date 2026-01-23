@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/app/config/db';
-import Product from '@/app/models/Product';
+import Product, { IProductVariantSize } from '@/app/models/Product';
 import { 
   extractPublicIdsFromProduct, 
   deleteMultipleFromCloudinary,
@@ -8,6 +8,7 @@ import {
   uploadToCloudinary
 } from '@/app/utils/cloudinary';
 import mongoose from 'mongoose';
+import { ProductVariant } from '@/app/types/product.types';
 
 // Type for route params (Next.js 13+ uses Promise)
 type RouteParams = Promise<{ id: string }>;
@@ -200,19 +201,30 @@ export async function PUT(
     }
     
     // Update status based on inventory if has variants
-    if (product.hasVariants && product.variants.length > 0) {
-      const totalInventory = product.variants.reduce((total: number, variant: { sizes: string; }) => {
-        return total + (variant.sizes || []).reduce((sum: number, size: { inventory: number; }) => sum + (size.inventory || 0), 0);
+   // Update status based on inventory if has variants
+if (product.hasVariants && product.variants.length > 0) {
+  // Cast variants to proper type and add type checking
+  const totalInventory = (product.variants as ProductVariant[]).reduce((total: number, variant: ProductVariant) => {
+    // Ensure sizes exists and is an array
+    const sizes = variant.sizes || [];
+    
+    if (Array.isArray(sizes)) {
+      return total + sizes.reduce((sum: number, size: IProductVariantSize) => {
+        return sum + (typeof size.inventory === 'number' ? size.inventory : 0);
       }, 0);
-      
-      if (totalInventory === 0) {
-        product.status = 'out-of-stock';
-      } else if (totalInventory <= 10) {
-        product.status = 'low-stock';
-      } else {
-        product.status = 'in-stock';
-      }
     }
+    
+    return total;
+  }, 0);
+  
+  if (totalInventory === 0) {
+    product.status = 'out-of-stock';
+  } else if (totalInventory <= 10) {
+    product.status = 'low-stock';
+  } else {
+    product.status = 'in-stock';
+  }
+}
     
     await product.save();
     
