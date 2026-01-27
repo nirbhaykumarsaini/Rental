@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { CategoryList } from '@/app/components/categories/CategoryList';
 import { AddCategory } from '@/app/components/categories/AddCategory';
 import { Layers, Package, Plus, RefreshCw } from 'lucide-react';
-import { Category, CategoryFormData } from '../types/category.types';
+import { Category } from '../types/category.types';
 import categoryService, { CategoryStatistics } from '@/app/services/categoryService';
 import { toast } from 'react-hot-toast';
 
