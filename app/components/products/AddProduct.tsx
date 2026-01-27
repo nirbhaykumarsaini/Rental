@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  X, 
-  Upload, 
-  Package, 
-  DollarSign, 
-  Hash, 
-  FileText, 
-  Box, 
+import {
+  X,
+  Upload,
+  Package,
+  DollarSign,
+  Hash,
+  FileText,
+  Box,
   Tag,
   Layers,
   Palette,
@@ -25,6 +25,9 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { Product, ProductVariant, ProductVariantSize } from '@/app/types/product.types';
+import { Category } from '@/app/types/category.types';
+import toast from 'react-hot-toast';
+import categoryService from '@/app/services/categoryService';
 
 interface AddProductProps {
   isOpen: boolean;
@@ -74,10 +77,12 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [expandedVariant, setExpandedVariant] = useState<number | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  
+  const [categories, setCategories] = useState<Category[]>([]);
+console.log(categories)
+
   // State for custom input visibility
-  const [customColorInputs, setCustomColorInputs] = useState<{[key: number]: boolean}>({});
-  const [customSizeInputs, setCustomSizeInputs] = useState<{[key: number]: {[sizeIndex: number]: boolean}}>({});
+  const [customColorInputs, setCustomColorInputs] = useState<{ [key: number]: boolean }>({});
+  const [customSizeInputs, setCustomSizeInputs] = useState<{ [key: number]: { [sizeIndex: number]: boolean } }>({});
 
   // Predefined color options
   const colorOptions = [
@@ -126,6 +131,28 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
     }
   }, [editingProduct]);
 
+  const fetchCategories = async () => {
+    try {
+      const response = await categoryService.getCategories({
+        withSubcategories: true,
+        withProductCount: true
+      });
+
+      if (response.status && response.data) {
+        setCategories(response.data);
+      } else {
+        toast.error(response.message || 'Failed to fetch categories');
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      toast.error('Failed to load categories');
+    }
+  };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
   // Reset form to default
   const resetForm = () => {
     setFormData(defaultProduct);
@@ -144,57 +171,57 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
     if (!formData.name.trim()) {
       newErrors.name = 'Product name is required';
     }
-    
+
     if (!formData.slug.trim()) {
       newErrors.slug = 'Product slug is required';
     } else if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(formData.slug)) {
       newErrors.slug = 'Slug can only contain lowercase letters, numbers, and hyphens';
     }
-    
+
     if (!formData.category.trim()) {
       newErrors.category = 'Category is required';
     }
-    
+
     if (formData.minOrderQuantity < 1) {
       newErrors.minOrderQuantity = 'Minimum order quantity must be at least 1';
     }
-    
+
     if (!formData.description.trim()) {
       newErrors.description = 'Description is required';
     }
-    
+
     if (imagePreviews.length === 0 && formData.images.length === 0) {
       newErrors.images = 'At least one product image is required';
     }
-    
+
     // Variant validation
     if (formData.hasVariants) {
       if (formData.variants.length === 0) {
         newErrors.variants = 'At least one color variant is required when using variants';
       }
-      
+
       formData.variants.forEach((variant: any, variantIndex: number) => {
         if (!variant.color?.trim()) {
           newErrors[`variant_${variantIndex}_color`] = 'Color name is required';
         }
-        
+
         if (variant.price <= 0) {
           newErrors[`variant_${variantIndex}_price`] = 'Price must be greater than 0';
         }
-        
+
         if (variant.sizes?.length === 0) {
           newErrors[`variant_${variantIndex}_sizes`] = 'At least one size is required';
         }
-        
+
         variant.sizes?.forEach((size: any, sizeIndex: number) => {
           if (!size.size?.trim()) {
             newErrors[`variant_${variantIndex}_size_${sizeIndex}`] = 'Size is required';
           }
-          
+
           if (!size.sku?.trim()) {
             newErrors[`variant_${variantIndex}_sku_${sizeIndex}`] = 'SKU is required';
           }
-          
+
           if (size.inventory < 0) {
             newErrors[`variant_${variantIndex}_inventory_${sizeIndex}`] = 'Inventory cannot be negative';
           }
@@ -220,18 +247,18 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
     const colorCode = color ? color.substring(0, 2).toUpperCase() : '';
     const sizeCode = size ? size.substring(0, 2).toUpperCase() : '';
     const randomNum = Math.floor(1000 + Math.random() * 9000);
-    
+
     return `${productCode}-${colorCode}${sizeCode}-${randomNum}`;
   };
 
   const handleBasicChange = (field: keyof Product, value: any) => {
     setFormData((prev: any) => {
       const updated = { ...prev, [field]: value };
-      
+
       if (field === 'name' && !editingProduct) {
         updated.slug = generateSlug(value);
       }
-      
+
       // Clear error for this field
       if (errors[field]) {
         setErrors(prev => {
@@ -240,7 +267,7 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
           return newErrors;
         });
       }
-      
+
       return updated;
     });
   };
@@ -249,7 +276,7 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
     setFormData((prev: any) => {
       const updatedVariants = [...prev.variants];
       const variant = updatedVariants[variantIndex];
-      
+
       // Clear variant errors
       if (errors[`variant_${variantIndex}_${field}`]) {
         setErrors(prev => {
@@ -258,7 +285,7 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
           return newErrors;
         });
       }
-      
+
       // Handle custom color input
       if (field === 'color' && value === 'custom') {
         // Show custom color input
@@ -277,18 +304,18 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
           ...prev,
           [variantIndex]: false
         }));
-        
+
         updatedVariants[variantIndex] = {
           ...variant,
           [field]: value
         };
-        
+
         // Update color code and regenerate SKUs
         const selectedColor = colorOptions.find(c => c.name === value);
         if (selectedColor) {
           updatedVariants[variantIndex].colorCode = selectedColor.code;
         }
-        
+
         // Update SKUs for all sizes in this variant
         if (variant.sizes) {
           updatedVariants[variantIndex].sizes = variant.sizes.map((size: any) => ({
@@ -302,7 +329,7 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
           [field]: value
         };
       }
-      
+
       return { ...prev, variants: updatedVariants };
     });
   };
@@ -312,13 +339,13 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
     setFormData((prev: any) => {
       const updatedVariants = [...prev.variants];
       const variant = updatedVariants[variantIndex];
-      
+
       updatedVariants[variantIndex] = {
         ...variant,
         color: value,
         colorCode: colorCode || '#000000'
       };
-      
+
       // Update SKUs for all sizes with new color name
       if (variant.sizes) {
         updatedVariants[variantIndex].sizes = variant.sizes.map((size: any) => ({
@@ -326,7 +353,7 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
           sku: generateSKU(formData.name, value, size.size)
         }));
       }
-      
+
       return { ...prev, variants: updatedVariants };
     });
   };
@@ -336,7 +363,7 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
       const updatedVariants = [...prev.variants];
       const variant = updatedVariants[variantIndex];
       const updatedSizes = [...variant.sizes];
-      
+
       // Clear size errors
       if (errors[`variant_${variantIndex}_${field}_${sizeIndex}`]) {
         setErrors(prev => {
@@ -345,7 +372,7 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
           return newErrors;
         });
       }
-      
+
       // Handle custom size input
       if (field === 'size' && value === 'custom') {
         // Show custom size input
@@ -370,12 +397,12 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
             [sizeIndex]: false
           }
         }));
-        
+
         updatedSizes[sizeIndex] = {
           ...updatedSizes[sizeIndex],
           [field]: value
         };
-        
+
         // Auto-generate SKU when size changes
         updatedSizes[sizeIndex].sku = generateSKU(
           formData.name,
@@ -388,12 +415,12 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
           [field]: value
         };
       }
-      
+
       updatedVariants[variantIndex] = {
         ...variant,
         sizes: updatedSizes
       };
-      
+
       return { ...prev, variants: updatedVariants };
     });
   };
@@ -404,18 +431,18 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
       const updatedVariants = [...prev.variants];
       const variant = updatedVariants[variantIndex];
       const updatedSizes = [...variant.sizes];
-      
+
       updatedSizes[sizeIndex] = {
         ...updatedSizes[sizeIndex],
         size: value,
         sku: generateSKU(formData.name, variant.color, value)
       };
-      
+
       updatedVariants[variantIndex] = {
         ...variant,
         sizes: updatedSizes
       };
-      
+
       return { ...prev, variants: updatedVariants };
     });
   };
@@ -431,7 +458,7 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
         isActive: true
       }))
     };
-    
+
     setFormData((prev: any) => ({
       ...prev,
       variants: [...prev.variants, newVariant],
@@ -444,18 +471,18 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
       ...prev,
       variants: prev.variants.filter((_: any, i: number) => i !== variantIndex)
     }));
-    
+
     // Clean up custom inputs state
     setCustomColorInputs(prev => {
       const { [variantIndex]: _, ...rest } = prev;
       return rest;
     });
-    
+
     setCustomSizeInputs(prev => {
       const { [variantIndex]: _, ...rest } = prev;
       return rest;
     });
-    
+
     // Clean up errors
     const newErrors = { ...errors };
     Object.keys(newErrors).forEach(key => {
@@ -470,19 +497,19 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
     setFormData((prev: any) => {
       const updatedVariants = [...prev.variants];
       const variant = updatedVariants[variantIndex];
-      
+
       const newSize: Omit<ProductVariantSize, '_id'> = {
         size: '',
         inventory: 0,
         sku: generateSKU(formData.name, variant.color, 'NEW'),
         isActive: true
       };
-      
+
       updatedVariants[variantIndex] = {
         ...variant,
         sizes: [...(variant.sizes || []), newSize]
       };
-      
+
       return { ...prev, variants: updatedVariants };
     });
   };
@@ -491,15 +518,15 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
     setFormData((prev: any) => {
       const updatedVariants = [...prev.variants];
       const variant = updatedVariants[variantIndex];
-      
+
       updatedVariants[variantIndex] = {
         ...variant,
         sizes: (variant.sizes || []).filter((_: any, i: number) => i !== sizeIndex)
       };
-      
+
       return { ...prev, variants: updatedVariants };
     });
-    
+
     // Clean up custom size input state
     setCustomSizeInputs(prev => ({
       ...prev,
@@ -508,13 +535,13 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
         [sizeIndex]: false
       }
     }));
-    
+
     // Clean up errors for this size
     const newErrors = { ...errors };
     Object.keys(newErrors).forEach(key => {
-      if (key.startsWith(`variant_${variantIndex}_size_${sizeIndex}`) || 
-          key.startsWith(`variant_${variantIndex}_sku_${sizeIndex}`) ||
-          key.startsWith(`variant_${variantIndex}_inventory_${sizeIndex}`)) {
+      if (key.startsWith(`variant_${variantIndex}_size_${sizeIndex}`) ||
+        key.startsWith(`variant_${variantIndex}_sku_${sizeIndex}`) ||
+        key.startsWith(`variant_${variantIndex}_inventory_${sizeIndex}`)) {
         delete newErrors[key];
       }
     });
@@ -527,10 +554,10 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, variantIndex?: number) => {
     const files = Array.from(e.target.files || []);
-    
+
     const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
     const invalidFiles = files.filter(file => !validTypes.includes(file.type));
-    
+
     if (invalidFiles.length > 0) {
       setErrors(prev => ({
         ...prev,
@@ -538,15 +565,15 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
       }));
       return;
     }
-    
-    if (files.some(file => file.size > 5 * 1024 * 1024)) {
+
+    if (files.some(file => file.size > 10 * 1024 * 1024)) {
       setErrors(prev => ({
         ...prev,
-        images: 'Image size should be less than 5MB'
+        images: 'Image size should be less than 10MB'
       }));
       return;
     }
-    
+
     if (variantIndex !== undefined) {
       const readers = files.map(file => {
         return new Promise<string>((resolve) => {
@@ -555,7 +582,7 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
           reader.readAsDataURL(file);
         });
       });
-      
+
       Promise.all(readers).then(newImages => {
         handleVariantChange(variantIndex, 'images', [
           ...(formData.variants[variantIndex]?.images || []),
@@ -570,14 +597,14 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
           reader.readAsDataURL(file);
         });
       });
-      
+
       Promise.all(readers).then(newImages => {
         setFormData((prev: any) => ({
           ...prev,
           images: [...prev.images, ...newImages]
         }));
         setImagePreviews(prev => [...prev, ...newImages]);
-        
+
         // Clear image error if any
         if (errors.images) {
           setErrors(prev => {
@@ -592,7 +619,7 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
 
   const removeImage = (index: number, variantIndex?: number) => {
     if (variantIndex !== undefined) {
-      handleVariantChange(variantIndex, 'images', 
+      handleVariantChange(variantIndex, 'images',
         (formData.variants[variantIndex]?.images || []).filter((_: any, i: number) => i !== index)
       );
     } else {
@@ -608,7 +635,7 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
     if (!formData.hasVariants || formData.variants.length === 0) {
       return formData.minOrderQuantity;
     }
-    
+
     return formData.variants.reduce((total: number, variant: any) => {
       const variantTotal = (variant.sizes || []).reduce((sum: number, size: any) => sum + (size.inventory || 0), 0);
       return total + variantTotal;
@@ -617,7 +644,7 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       // Scroll to first error
       const firstErrorKey = Object.keys(errors)[0];
@@ -627,13 +654,13 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
       }
       return;
     }
-    
+
     // Ensure formData has all required images
     const productToSubmit = {
       ...formData,
       images: formData.images.length > 0 ? formData.images : imagePreviews
     };
-    
+
     onSubmit(productToSubmit as Product);
   };
 
@@ -673,8 +700,8 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
               onClick={() => setActiveTab('basic')}
               disabled={isLoading}
               className={`px-4 py-3 font-medium text-sm ${activeTab === 'basic'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-500 hover:text-gray-700'
+                ? 'text-blue-600 border-b-2 border-blue-600'
+                : 'text-gray-500 hover:text-gray-700'
                 } disabled:opacity-50`}
             >
               Basic Information
@@ -683,8 +710,8 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
               onClick={() => setActiveTab('variants')}
               disabled={isLoading}
               className={`px-4 py-3 font-medium text-sm ${activeTab === 'variants'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-500 hover:text-gray-700'
+                ? 'text-blue-600 border-b-2 border-blue-600'
+                : 'text-gray-500 hover:text-gray-700'
                 } disabled:opacity-50`}
             >
               Variants & Inventory
@@ -724,8 +751,8 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                   {imagePreviews.map((image, index) => (
                     <div key={index} className="relative group">
-                      <img 
-                        src={image} 
+                      <img
+                        src={image}
                         alt={`Preview ${index + 1}`}
                         className="w-full h-32 object-cover rounded-lg"
                       />
@@ -776,9 +803,8 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
                       value={formData.name}
                       onChange={(e) => handleBasicChange('name', e.target.value)}
                       placeholder="Enter product name"
-                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                        errors.name ? 'border-red-300' : 'border-gray-300'
-                      }`}
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.name ? 'border-red-300' : 'border-gray-300'
+                        }`}
                       disabled={isLoading}
                       required
                     />
@@ -787,7 +813,7 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
                     <p className="text-sm text-red-600 mt-1">{errors.name}</p>
                   )}
                 </div>
-                
+
                 <div id="slug">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Product Slug *
@@ -799,9 +825,8 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
                       value={formData.slug}
                       onChange={(e) => handleBasicChange('slug', e.target.value)}
                       placeholder="product-slug"
-                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                        errors.slug ? 'border-red-300' : 'border-gray-300'
-                      }`}
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.slug ? 'border-red-300' : 'border-gray-300'
+                        }`}
                       disabled={isLoading}
                       required
                     />
@@ -821,23 +846,22 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
                   <select
                     value={formData.category}
                     onChange={(e) => handleBasicChange('category', e.target.value)}
-                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      errors.category ? 'border-red-300' : 'border-gray-300'
-                    }`}
+                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.category ? 'border-red-300' : 'border-gray-300'
+                      }`}
                     disabled={isLoading}
                   >
-                    <option value="Electronics">Electronics</option>
-                    <option value="Clothing">Clothing</option>
-                    <option value="Footwear">Footwear</option>
-                    <option value="Accessories">Accessories</option>
-                    <option value="Home">Home</option>
-                    <option value="Other">Other</option>
+                    <option value="">Select a category</option>
+                    {categories.map((category) => (
+                      <option key={category.slug} value={category.slug}>
+                        {category.name}
+                      </option>
+                    ))}
                   </select>
                   {errors.category && (
                     <p className="text-sm text-red-600 mt-1">{errors.category}</p>
                   )}
                 </div>
-                
+
                 <div id="minOrderQuantity">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Minimum Order Quantity *
@@ -850,9 +874,8 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
                       onChange={(e) => handleBasicChange('minOrderQuantity', parseInt(e.target.value) || 1)}
                       placeholder="1"
                       min="1"
-                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                        errors.minOrderQuantity ? 'border-red-300' : 'border-gray-300'
-                      }`}
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.minOrderQuantity ? 'border-red-300' : 'border-gray-300'
+                        }`}
                       disabled={isLoading}
                       required
                     />
@@ -897,9 +920,8 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
                     onChange={(e) => handleBasicChange('description', e.target.value)}
                     placeholder="Enter product description"
                     rows={4}
-                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${
-                      errors.description ? 'border-red-300' : 'border-gray-300'
-                    }`}
+                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${errors.description ? 'border-red-300' : 'border-gray-300'
+                      }`}
                     disabled={isLoading}
                   />
                 </div>
@@ -941,7 +963,7 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
                     Publish Product
                   </label>
                 </div>
-                
+
                 <div className="flex items-center space-x-3">
                   <input
                     type="checkbox"
@@ -972,7 +994,7 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
                 <div>
                   <h3 className="text-lg font-medium text-gray-900">Product Variants</h3>
                   <p className="text-sm text-gray-500">
-                    Add colors with multiple sizes. Select "Custom Color..." or "Custom..." size to enter custom values.
+                    Add colors with multiple sizes.
                   </p>
                 </div>
                 <button
@@ -991,7 +1013,7 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
                 <div className="space-y-4">
                   {formData.variants.map((variant: any, variantIndex: number) => {
                     const showCustomColorInput = customColorInputs[variantIndex];
-                    
+
                     return (
                       <div key={variantIndex} className="border border-gray-200 rounded-lg p-4">
                         <div className="flex items-center justify-between mb-4">
@@ -1050,9 +1072,8 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
                                       value={variant.color}
                                       onChange={(e) => handleCustomColorChange(variantIndex, e.target.value, variant.colorCode)}
                                       placeholder="Enter custom color name"
-                                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                                        errors[`variant_${variantIndex}_color`] ? 'border-red-300' : 'border-gray-300'
-                                      }`}
+                                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors[`variant_${variantIndex}_color`] ? 'border-red-300' : 'border-gray-300'
+                                        }`}
                                       disabled={isLoading}
                                     />
                                     <div className="flex items-center space-x-3">
@@ -1066,7 +1087,7 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
                                       <button
                                         type="button"
                                         onClick={() => {
-                                          setCustomColorInputs(prev => ({...prev, [variantIndex]: false}));
+                                          setCustomColorInputs(prev => ({ ...prev, [variantIndex]: false }));
                                           handleVariantChange(variantIndex, 'color', '');
                                         }}
                                         disabled={isLoading}
@@ -1080,9 +1101,8 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
                                   <select
                                     value={variant.color}
                                     onChange={(e) => handleVariantChange(variantIndex, 'color', e.target.value)}
-                                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                                      errors[`variant_${variantIndex}_color`] ? 'border-red-300' : 'border-gray-300'
-                                    }`}
+                                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors[`variant_${variantIndex}_color`] ? 'border-red-300' : 'border-gray-300'
+                                      }`}
                                     disabled={isLoading}
                                   >
                                     <option value="">Select Color</option>
@@ -1134,9 +1154,8 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
                                   placeholder="0.00"
                                   min="0"
                                   step="0.01"
-                                  className={`w-full pl-9 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                                    errors[`variant_${variantIndex}_price`] ? 'border-red-300' : 'border-gray-300'
-                                  }`}
+                                  className={`w-full pl-9 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors[`variant_${variantIndex}_price`] ? 'border-red-300' : 'border-gray-300'
+                                    }`}
                                   disabled={isLoading}
                                 />
                               </div>
@@ -1156,8 +1175,8 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
                               <div className="flex space-x-2 overflow-x-auto pb-2">
                                 {variant.images?.map((img: string, imgIndex: number) => (
                                   <div key={imgIndex} className="relative flex-shrink-0">
-                                    <img 
-                                      src={img} 
+                                    <img
+                                      src={img}
                                       alt={`Color ${variant.color} - Image ${imgIndex + 1}`}
                                       className="w-20 h-20 object-cover rounded"
                                     />
@@ -1229,7 +1248,7 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
                                   <tbody className="bg-white divide-y divide-gray-200">
                                     {variant.sizes?.map((size: any, sizeIndex: number) => {
                                       const showCustomSizeInput = customSizeInputs[variantIndex]?.[sizeIndex];
-                                      
+
                                       return (
                                         <tr key={sizeIndex}>
                                           <td className="px-4 py-3 whitespace-nowrap">
@@ -1240,9 +1259,8 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
                                                   value={size.size}
                                                   onChange={(e) => handleCustomSizeChange(variantIndex, sizeIndex, e.target.value)}
                                                   placeholder="Enter custom size (e.g., 38, 7, One Size)"
-                                                  className={`w-full px-3 py-1 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${
-                                                    errors[`variant_${variantIndex}_size_${sizeIndex}`] ? 'border-red-300' : 'border-gray-300'
-                                                  }`}
+                                                  className={`w-full px-3 py-1 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${errors[`variant_${variantIndex}_size_${sizeIndex}`] ? 'border-red-300' : 'border-gray-300'
+                                                    }`}
                                                   disabled={isLoading}
                                                 />
                                                 <button
@@ -1267,9 +1285,8 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
                                               <select
                                                 value={size.size}
                                                 onChange={(e) => handleSizeChange(variantIndex, sizeIndex, 'size', e.target.value)}
-                                                className={`w-full px-3 py-1 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${
-                                                  errors[`variant_${variantIndex}_size_${sizeIndex}`] ? 'border-red-300' : 'border-gray-300'
-                                                }`}
+                                                className={`w-full px-3 py-1 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${errors[`variant_${variantIndex}_size_${sizeIndex}`] ? 'border-red-300' : 'border-gray-300'
+                                                  }`}
                                                 disabled={isLoading}
                                               >
                                                 <option value="">Select Size</option>
@@ -1292,9 +1309,8 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
                                                 value={size.inventory}
                                                 onChange={(e) => handleSizeChange(variantIndex, sizeIndex, 'inventory', parseInt(e.target.value) || 0)}
                                                 min="0"
-                                                className={`w-full px-3 py-1 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${
-                                                  errors[`variant_${variantIndex}_inventory_${sizeIndex}`] ? 'border-red-300' : 'border-gray-300'
-                                                }`}
+                                                className={`w-full px-3 py-1 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${errors[`variant_${variantIndex}_inventory_${sizeIndex}`] ? 'border-red-300' : 'border-gray-300'
+                                                  }`}
                                                 disabled={isLoading}
                                               />
                                               {errors[`variant_${variantIndex}_inventory_${sizeIndex}`] && (
@@ -1309,9 +1325,8 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
                                                 type="text"
                                                 value={size.sku}
                                                 onChange={(e) => handleSizeChange(variantIndex, sizeIndex, 'sku', e.target.value)}
-                                                className={`w-full pl-8 pr-3 py-1 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${
-                                                  errors[`variant_${variantIndex}_sku_${sizeIndex}`] ? 'border-red-300' : 'border-gray-300'
-                                                }`}
+                                                className={`w-full pl-8 pr-3 py-1 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${errors[`variant_${variantIndex}_sku_${sizeIndex}`] ? 'border-red-300' : 'border-gray-300'
+                                                  }`}
                                                 disabled={isLoading}
                                               />
                                               {errors[`variant_${variantIndex}_sku_${sizeIndex}`] && (
@@ -1383,18 +1398,6 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
                 <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
                   <Layers className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                   <h4 className="text-lg font-medium text-gray-900 mb-2">No Variants Added</h4>
-                  <p className="text-gray-500 mb-4">
-                    Add color variants with multiple sizes. Select "Custom Color..." or "Custom..." size to enter custom values.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={addVariant}
-                    disabled={isLoading}
-                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Your First Color Variant
-                  </button>
                 </div>
               )}
 
@@ -1414,7 +1417,7 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
                   </label>
                 </div>
                 <p className="text-xs text-gray-500 mt-2">
-                  When enabled, you can add different colors with multiple sizes. Select "Custom Color..." 
+                  When enabled, you can add different colors with multiple sizes. Select "Custom Color..."
                   or "Custom..." size options to enter custom values.
                 </p>
               </div>
@@ -1429,8 +1432,8 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
                 onClick={() => setActiveTab('basic')}
                 disabled={isLoading}
                 className={`px-4 py-2 rounded-lg ${activeTab === 'basic'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-700 hover:bg-gray-100'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-gray-700 hover:bg-gray-100'
                   } disabled:opacity-50`}
               >
                 Basic
@@ -1440,14 +1443,14 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
                 onClick={() => setActiveTab('variants')}
                 disabled={isLoading}
                 className={`px-4 py-2 rounded-lg ${activeTab === 'variants'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-700 hover:bg-gray-100'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-gray-700 hover:bg-gray-100'
                   } disabled:opacity-50`}
               >
                 Variants
               </button>
             </div>
-            
+
             <div className="flex space-x-4">
               <button
                 type="button"

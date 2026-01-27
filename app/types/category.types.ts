@@ -1,22 +1,8 @@
-import { ICategoryDocument } from '@/app/models/Category';
-
-
-export interface Category extends ICategoryDocument {
-  subCategories?: Category[];
-  productCount: number;
-}
-
-export interface CategoryFormData {
+export interface Category {
+  _id:string;
   name: string;
-  description?: string;
   slug: string;
-  parentId?:string;
-  icon?: string;
-  color: string;
-  sortOrder?: number;
-  isFeatured?: boolean;
+  category_image: string;
+  productCount:string;
   isActive?: boolean;
-  metaTitle?: string;
-  metaDescription?: string;
-  subCategories?: string[];
 }

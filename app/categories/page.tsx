@@ -53,7 +53,11 @@ export default function CategoriesPage() {
 
   const fetchParentCategories = async () => {
     try {
-      const response = await categoryService.getParentCategories();
+      const response = await categoryService.getCategories({
+        active: true,
+        limit: 100
+      });
+      
       if (response.status && response.data) {
         setParentCategories(response.data);
       }
@@ -78,16 +82,21 @@ export default function CategoriesPage() {
     setIsAddModalOpen(true);
   };
 
-  const handleSubmitCategory = async (categoryData: CategoryFormData) => {
+  const handleSubmitCategory = async (categoryData: CategoryFormData, imageFile?: File) => {
     try {
       let response;
       
       if (editingCategory) {
         // Update existing category
-        response = await categoryService.updateCategory(editingCategory._id.toString(), categoryData);
+        response = await categoryService.updateCategory(
+          editingCategory._id.toString(),
+          categoryData,
+          imageFile,
+          !categoryData.category_image // remove image if empty
+        );
       } else {
         // Create new category
-        response = await categoryService.createCategory(categoryData);
+        response = await categoryService.createCategory(categoryData, imageFile);
       }
 
       if (response.status) {
@@ -106,7 +115,7 @@ export default function CategoriesPage() {
   };
 
   const handleDeleteCategory = async (categoryId: string) => {
-    if (!confirm('Are you sure you want to delete this category?')) {
+    if (!confirm('Are you sure you want to delete this category? This will also delete the category image from Cloudinary.')) {
       return;
     }
 
@@ -116,6 +125,7 @@ export default function CategoriesPage() {
         toast.success('Category deleted successfully');
         fetchCategories();
         fetchStatistics();
+        fetchParentCategories();
       } else {
         toast.error(response.message || 'Failed to delete category');
       }
@@ -129,10 +139,13 @@ export default function CategoriesPage() {
     setRefreshing(true);
     fetchCategories();
     fetchStatistics();
+    fetchParentCategories();
   };
 
+  console.log(statistics)
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 ">
       {/* Page Header */}
       <div className="mb-6 md:mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
@@ -141,20 +154,20 @@ export default function CategoriesPage() {
               <Layers className="w-6 h-6 text-indigo-600" />
             </div>
             <div>
-              <h1 className="text-2xl md:text-2xl font-bold text-gray-900">Category Management</h1>
-              <p className="text-gray-500">Organize products with categories and sub-categories</p>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Category Management</h1>
+              <p className="text-gray-500 mt-1">Organize products with categories and manage category images</p>
             </div>
           </div>
           
           <div className="flex items-center space-x-3">
-            <button
+            {/* <button
               onClick={handleRefresh}
-              disabled={refreshing}
+              disabled={refreshing || loading}
               className="flex items-center justify-center px-4 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
               Refresh
-            </button>
+            </button> */}
             
             <button
               onClick={handleAddCategory}
@@ -186,23 +199,9 @@ export default function CategoriesPage() {
         <div className="bg-white rounded-xl shadow border border-gray-200 p-4 md:p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 mb-2">Main Categories</p>
+              <p className="text-sm text-gray-500 mb-2">Active Categories</p>
               <p className="text-2xl font-semibold text-gray-900">
-                {loading ? '...' : statistics?.mainCategories || 0}
-              </p>
-            </div>
-            <div className="p-2 bg-blue-50 rounded-full">
-              <div className="w-5 h-5 bg-blue-500 rounded-full"></div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow border border-gray-200 p-4 md:p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500 mb-2">Sub-categories</p>
-              <p className="text-2xl font-semibold text-gray-900">
-                {loading ? '...' : statistics?.subCategories || 0}
+                {loading ? '...' : statistics?.activeCategories || 0}
               </p>
             </div>
             <div className="p-2 bg-green-50 rounded-full">
@@ -214,30 +213,62 @@ export default function CategoriesPage() {
         <div className="bg-white rounded-xl shadow border border-gray-200 p-4 md:p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 mb-2">Active Categories</p>
+              <p className="text-sm text-gray-500 mb-2">Inactive Categories</p>
               <p className="text-2xl font-semibold text-gray-900">
-                {loading ? '...' : statistics?.activeCategories || 0}
+                {loading ? '...' : statistics?.inactiveCategories || 0}
               </p>
             </div>
-            <div className="p-2 bg-purple-50 rounded-full">
-              <Package className="w-5 h-5 text-purple-500" />
+            <div className="p-2 bg-green-50 rounded-full">
+              <div className="w-5 h-5 bg-red-500 rounded-full"></div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Category List Component */}
-      <CategoryList 
-        categories={categories}
-        loading={loading}
-        onEditCategory={handleEditCategory}
-        onDeleteCategory={handleDeleteCategory}
-      />
+      {/* Main Content */}
+      <div className="bg-white rounded-xl shadow border border-gray-200 overflow-hidden">
+
+
+        {/* Category List Component */}
+        {loading ? (
+          <div className="p-8 md:p-12 text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+            <p className="mt-4 text-gray-500">Loading categories...</p>
+          </div>
+        ) : categories.length === 0 ? (
+          <div className="p-8 md:p-12 text-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+              <Layers className="w-8 h-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No categories found</h3>
+            <p className="text-gray-500 mb-6">
+              Get started by creating your first product category
+            </p>
+            <button
+              onClick={handleAddCategory}
+              className="px-6 py-2.5 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+            >
+              <Plus className="w-4 h-4 mr-2 inline" />
+              Add First Category
+            </button>
+          </div>
+        ) : (
+          <CategoryList 
+            categories={categories}
+            loading={loading}
+            onEditCategory={handleEditCategory}
+            onDeleteCategory={handleDeleteCategory}
+          />
+        )}
+      </div>
 
       {/* Add/Edit Category Modal */}
       <AddCategory
         isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
+        onClose={() => {
+          setIsAddModalOpen(false);
+          setEditingCategory(null);
+        }}
         onSubmit={handleSubmitCategory}
         editingCategory={editingCategory}
         parentCategories={parentCategories}

@@ -1,8 +1,10 @@
+// app/api/categories/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/app/config/db';
 import Category from '@/app/models/Category';
 import Product from '@/app/models/Product';
 import mongoose from 'mongoose';
+import { uploadToCloudinary, deleteFromCloudinary, getPublicIdFromUrl } from '@/app/utils/cloudinary';
 
 // GET - Fetch single category by ID or slug
 export async function GET(
@@ -17,7 +19,7 @@ export async function GET(
     const withSubcategories = searchParams.get('withSubcategories') === 'true';
     const withProductCount = searchParams.get('withProductCount') === 'true';
 
-    // Build query - check if id is ObjectId or slug
+    // Build query
     let query: any;
     if (mongoose.Types.ObjectId.isValid(id)) {
       query = { _id: new mongoose.Types.ObjectId(id) };
@@ -31,7 +33,7 @@ export async function GET(
       populateOptions.push({
         path: 'subCategories',
         match: { isActive: true },
-        options: { sort: { sortOrder: 1, name: 1 } }
+        options: { sort: { name: 1 } }
       });
     }
     if (withProductCount) {
@@ -66,7 +68,7 @@ export async function GET(
   }
 }
 
-// PUT - Update category
+// PUT - Update category with image handling
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -75,9 +77,8 @@ export async function PUT(
     await connectDB();
 
     const { id } = await params;
-    const body = await request.json();
-
-    // Find category
+    
+    // Check if category exists
     const category = await Category.findById(id);
     if (!category) {
       return NextResponse.json(
@@ -86,53 +87,93 @@ export async function PUT(
       );
     }
 
-    // Prevent circular reference
-    if (body.parentId && body.parentId === id) {
-      return NextResponse.json(
-        { status: false, message: 'Category cannot be its own parent' },
-        { status: 400 }
-      );
-    }
+    const formData = await request.formData();
+    const name = formData.get('name') as string;
+    const slug = formData.get('slug') as string;
+    const isActive = formData.get('isActive') === 'true';
+    const updatedBy = formData.get('updatedBy') as string;
+    const imageFile = formData.get('category_image') as File;
+    const removeImage = formData.get('removeImage') === 'true';
 
-    // Validate parent category exists if changing parent
-    if (body.parentId && body.parentId !== category.parentId?.toString()) {
-      if (!mongoose.Types.ObjectId.isValid(body.parentId)) {
+    // Update fields
+    const updateData: any = {};
+    
+    if (name !== undefined) updateData.name = name;
+    if (slug !== undefined) {
+      // Validate slug
+      if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
         return NextResponse.json(
-          { status: false, message: 'Invalid parent category ID' },
+          { status: false, message: 'Invalid slug format' },
           { status: 400 }
         );
       }
       
-      const parentCategory = await Category.findById(body.parentId);
-      if (!parentCategory) {
+      // Check if slug is already used by another category
+      const existingCategory = await Category.findOne({ 
+        slug, 
+        _id: { $ne: id } 
+      });
+      
+      if (existingCategory) {
         return NextResponse.json(
-          { status: false, message: 'Parent category not found' },
-          { status: 404 }
+          { status: false, message: 'Slug is already in use' },
+          { status: 409 }
+        );
+      }
+      
+      updateData.slug = slug;
+    }
+    
+    if (isActive !== undefined) updateData.isActive = isActive;
+    
+    // Handle image upload/removal
+    let oldImagePublicId: string | null = null;
+    
+    // Delete old image if requested or if uploading new image
+    if (removeImage || (imageFile && imageFile.size > 0)) {
+      if (category.category_image) {
+        oldImagePublicId = getPublicIdFromUrl(category.category_image);
+      }
+      
+      if (removeImage) {
+        updateData.category_image = '';
+      }
+    }
+    
+    // Upload new image if provided
+    if (imageFile && imageFile.size > 0) {
+      try {
+        const uploadResult = await uploadToCloudinary(imageFile, 'categories');
+        updateData.category_image = uploadResult.secure_url;
+      } catch (uploadError) {
+        console.error('Error uploading image to Cloudinary:', uploadError);
+        return NextResponse.json(
+          { status: false, message: 'Failed to upload category image' },
+          { status: 500 }
         );
       }
     }
-
-    // Update fields
-    const updateData: any = {};
-    if (body.name !== undefined) updateData.name = body.name;
-    if (body.description !== undefined) updateData.description = body.description;
-    if (body.slug !== undefined) updateData.slug = body.slug;
-    if (body.parentId !== undefined) updateData.parentId = body.parentId || null;
-    if (body.icon !== undefined) updateData.icon = body.icon;
-    if (body.color !== undefined) updateData.color = body.color;
-    if (body.sortOrder !== undefined) updateData.sortOrder = body.sortOrder;
-    if (body.isFeatured !== undefined) updateData.isFeatured = body.isFeatured;
-    if (body.isActive !== undefined) updateData.isActive = body.isActive;
-    if (body.metaTitle !== undefined) updateData.metaTitle = body.metaTitle;
-    if (body.metaDescription !== undefined) updateData.metaDescription = body.metaDescription;
-    if (body.updatedBy !== undefined) updateData.updatedBy = new mongoose.Types.ObjectId(body.updatedBy);
+    
+    if (updatedBy && mongoose.Types.ObjectId.isValid(updatedBy)) {
+      updateData.updatedBy = new mongoose.Types.ObjectId(updatedBy);
+    }
 
     // Update category
     const updatedCategory = await Category.findByIdAndUpdate(
       id,
       updateData,
       { new: true, runValidators: true }
-    ).populate('subCategories');
+    ).select('-__v');
+
+    // Delete old image from Cloudinary after successful update
+    if (oldImagePublicId && !removeImage) {
+      try {
+        await deleteFromCloudinary(oldImagePublicId);
+      } catch (deleteError) {
+        console.error('Error deleting old image from Cloudinary:', deleteError);
+        // Don't fail the request if image deletion fails
+      }
+    }
 
     return NextResponse.json({
       status: true,
@@ -143,7 +184,6 @@ export async function PUT(
   } catch (error: any) {
     console.error('Error updating category:', error);
     
-    // Handle duplicate slug error
     if (error.code === 11000) {
       return NextResponse.json(
         { status: false, message: 'Category slug already exists' },
@@ -158,7 +198,7 @@ export async function PUT(
   }
 }
 
-// DELETE - Delete category
+// DELETE - Delete category with image cleanup
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -177,18 +217,6 @@ export async function DELETE(
       );
     }
 
-    // Check if category has subcategories
-    const subcategories = await Category.countDocuments({ parentId: id });
-    if (subcategories > 0) {
-      return NextResponse.json(
-        { 
-          status: false, 
-          message: 'Cannot delete category that has subcategories. Please delete subcategories first or reassign them.' 
-        },
-        { status: 400 }
-      );
-    }
-
     // Check if category has products
     const productCount = await Product.countDocuments({ category: id });
     if (productCount > 0) {
@@ -199,6 +227,19 @@ export async function DELETE(
         },
         { status: 400 }
       );
+    }
+
+    // Delete image from Cloudinary
+    if (category.category_image) {
+      const publicId = getPublicIdFromUrl(category.category_image);
+      if (publicId) {
+        try {
+          await deleteFromCloudinary(publicId);
+        } catch (deleteError) {
+          console.error('Error deleting image from Cloudinary:', deleteError);
+          // Continue with deletion even if image delete fails
+        }
+      }
     }
 
     // Delete category

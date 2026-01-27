@@ -1,62 +1,43 @@
 // app/components/categories/AddCategory.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Category, CategoryFormData } from '@/app/types/category.types';
-import { X, Plus, Trash2, Palette, Hash, Loader2, Check } from 'lucide-react';
+import { X, Plus, Trash2, Palette, Hash, Loader2, Check, Upload, Image as ImageIcon } from 'lucide-react';
 import categoryService from '@/app/services/categoryService';
-import { Types } from 'mongoose';
 
 interface AddCategoryProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (categoryData: CategoryFormData) => void;
+  onSubmit: (categoryData: CategoryFormData, imageFile?: File) => void;
   editingCategory: Category | null;
   parentCategories: Category[];
 }
 
-const colorOptions = [
-  '#3B82F6', // Blue
-  '#10B981', // Green
-  '#F59E0B', // Yellow
-  '#EF4444', // Red
-  '#8B5CF6', // Purple
-  '#EC4899', // Pink
-  '#14B8A6', // Teal
-  '#F97316', // Orange
-];
-
-export function AddCategory({ isOpen, onClose, onSubmit, editingCategory, parentCategories }: AddCategoryProps) {
+export function AddCategory({ isOpen, onClose, onSubmit, editingCategory }: AddCategoryProps) {
   const [formData, setFormData] = useState<Partial<Category>>({
     name: '',
-    description: '',
-    color: '#3B82F6',
+    category_image: '',
     slug: '',
-    parentId: '',
-    sortOrder: 0,
-    isFeatured: false,
     isActive: true,
   });
-  const [subCategories, setSubCategories] = useState<Array<{id: string, name: string}>>([]);
-  const [newSubCategory, setNewSubCategory] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
   const [checkingSlug, setCheckingSlug] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const resetForm = () => {
     setFormData({
       name: '',
-      description: '',
-      color: '#3B82F6',
+      category_image: '',
       slug: '',
-      parentId: '',
-      sortOrder: 0,
-      isFeatured: false,
       isActive: true,
     });
-    setSubCategories([]);
-    setNewSubCategory('');
+    setImageFile(null);
+    setImagePreview('');
     setSlugAvailable(null);
     setErrors([]);
   };
@@ -65,21 +46,14 @@ export function AddCategory({ isOpen, onClose, onSubmit, editingCategory, parent
     if (editingCategory) {
       setFormData({
         name: editingCategory.name,
-        description: editingCategory.description || '',
-        color: editingCategory.color,
+        category_image: editingCategory.category_image,
         slug: editingCategory.slug,
-        parentId: editingCategory.parentId,
-        sortOrder: editingCategory.sortOrder || 0,
-        isFeatured: editingCategory.isFeatured || false,
         isActive: editingCategory.isActive !== undefined ? editingCategory.isActive : true,
       });
 
-      setSubCategories(
-        editingCategory.subCategories?.map(sc => ({
-          id: sc._id.toString(),
-          name: sc.name,
-        })) || []
-      );
+      if (editingCategory.category_image) {
+        setImagePreview(editingCategory.category_image);
+      }
     } else {
       resetForm();
     }
@@ -87,7 +61,7 @@ export function AddCategory({ isOpen, onClose, onSubmit, editingCategory, parent
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    
+
     if (type === 'checkbox') {
       const checkbox = e.target as HTMLInputElement;
       setFormData(prev => ({ ...prev, [name]: checkbox.checked }));
@@ -95,32 +69,51 @@ export function AddCategory({ isOpen, onClose, onSubmit, editingCategory, parent
       setFormData(prev => ({ ...prev, [name]: value }));
     }
 
-    // Clear slug availability when slug changes
     if (name === 'slug') {
       setSlugAvailable(null);
     }
+
   };
 
-  const handleColorSelect = (color: string) => {
-    setFormData(prev => ({ ...prev, color }));
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      setErrors(['Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.']);
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      setErrors(['File size too large. Maximum size is 5MB.']);
+      return;
+    }
+
+    setImageFile(file);
+    setErrors(prev => prev.filter(error => !error.includes('file')));
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setImagePreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
   };
 
-  const handleAddSubCategory = () => {
-    if (newSubCategory.trim()) {
-      setSubCategories(prev => [
-        ...prev,
-        { id: `temp-${Date.now()}`, name: newSubCategory.trim() }
-      ]);
-      setNewSubCategory('');
+  const removeImage = () => {
+    setImageFile(null);
+    setImagePreview('');
+    if (!editingCategory) {
+      setFormData(prev => ({ ...prev, category_image: '' }));
     }
   };
 
-  const handleRemoveSubCategory = (id: string) => {
-    setSubCategories(prev => prev.filter(sc => sc.id !== id));
-  };
-
   const generateSlug = () => {
-    if(!formData.name) return;
+    if (!formData.name) return;
     const slug = formData.name
       .toLowerCase()
       .replace(/[^\w\s-]/g, '')
@@ -131,55 +124,19 @@ export function AddCategory({ isOpen, onClose, onSubmit, editingCategory, parent
     setSlugAvailable(null);
   };
 
-  const checkSlugAvailability = async () => {
-    if (!formData.slug) return;
-    
-    try {
-      setCheckingSlug(true);
-      const response = await categoryService.checkSlugAvailability(
-        formData.slug,
-        editingCategory?._id.toString()
-      );
-      
-      if (response.status && response.data) {
-        setSlugAvailable(response.data.available);
-        if (!response.data.available) {
-          setErrors(['Slug is already taken. Please choose another.']);
-        } else {
-          setErrors([]);
-        }
-      }
-    } catch (error) {
-      console.error('Error checking slug:', error);
-    } finally {
-      setCheckingSlug(false);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate form
     const validation = categoryService.validateCategoryData({
       name: formData.name || '',
       slug: formData.slug || '',
-      color: formData.color || '#3B82F6',
-      description: formData.description,
-      parentId: formData.parentId || '',
-      subCategories: subCategories.map(sc => sc.name),
+      category_image: formData.category_image || '',
     });
 
     if (!validation.valid) {
       setErrors(validation.errors);
       return;
-    }
-
-    // Check slug availability if not already checked
-    if (slugAvailable === null) {
-      await checkSlugAvailability();
-      if (!slugAvailable) {
-        return;
-      }
     }
 
     // Check slug availability for new categories
@@ -190,19 +147,14 @@ export function AddCategory({ isOpen, onClose, onSubmit, editingCategory, parent
 
     const categoryData: CategoryFormData = {
       name: formData.name || '',
-      description: formData.description,
-      color: formData.color || '#3B82F6',
+      category_image: formData.category_image || '',
       slug: formData.slug || '',
-      parentId: formData.parentId ?? '',
-      sortOrder: formData.sortOrder || 0,
-      isFeatured: formData.isFeatured || false,
       isActive: formData.isActive !== undefined ? formData.isActive : true,
-      subCategories: subCategories.map(sc => sc.name),
     };
 
     setLoading(true);
     try {
-      await onSubmit(categoryData);
+      await onSubmit(categoryData, imageFile || undefined);
       resetForm();
       onClose();
     } finally {
@@ -214,12 +166,10 @@ export function AddCategory({ isOpen, onClose, onSubmit, editingCategory, parent
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
-      {/* Backdrop */}
       <div className="fixed inset-0 bg-black bg-opacity-50" onClick={onClose}></div>
 
-      {/* Modal */}
       <div className="flex min-h-screen items-center justify-center p-4">
-        <div className="relative bg-white rounded-xl shadow-xl w-full max-w-5xl max-h-[90vh] overflow-y-auto">
+        <div className="relative bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
             <div>
@@ -271,32 +221,58 @@ export function AddCategory({ isOpen, onClose, onSubmit, editingCategory, parent
                 />
               </div>
 
-              {/* Color Selection */}
+              {/* Category Image */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">
-                  Category Color
+                  Category Image
                 </label>
-                <div className="flex items-center space-x-2 mb-2">
-                  <div 
-                    className="w-6 h-6 rounded-full border border-gray-300"
-                    style={{ backgroundColor: formData.color }}
-                  />
-                  <span className="text-sm text-gray-500">{formData.color}</span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {colorOptions.map(color => (
-                    <button
-                      key={color}
-                      type="button"
-                      onClick={() => handleColorSelect(color)}
+                <div className="space-y-4">
+                  {/* Image Preview */}
+                  {(imagePreview || formData.category_image) && (
+                    <div className="relative">
+                      <div className="w-24 h-24 bg-gray-100 rounded-lg overflow-hidden">
+                        <img
+                          src={imagePreview || formData.category_image}
+                          alt="Category preview"
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={removeImage}
+                        className="absolute -top-1 left-20 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                        disabled={loading}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Upload Button */}
+                  { (!imagePreview || !formData.category_image) && (<div>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleImageChange}
+                      accept="image/*"
+                      className="hidden"
                       disabled={loading}
-                      className={`w-6 h-6 rounded-full border-2 ${
-                        formData.color === color ? 'border-gray-800' : 'border-transparent'
-                      } disabled:opacity-50`}
-                      style={{ backgroundColor: color }}
-                      title={color}
                     />
-                  ))}
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-colors flex flex-col items-center justify-center"
+                      disabled={loading}
+                    >
+                      <Upload className="w-6 h-6 text-gray-400 mb-2" />
+                      <span className="text-sm text-gray-600">
+                        {imagePreview ? 'Change Image' : 'Upload Category Image'}
+                      </span>
+                      <span className="text-xs text-gray-500 mt-1">
+                        PNG, JPG, GIF, WebP up to 5MB
+                      </span>
+                    </button>
+                  </div>)}
                 </div>
               </div>
 
@@ -322,14 +298,12 @@ export function AddCategory({ isOpen, onClose, onSubmit, editingCategory, parent
                     name="slug"
                     value={formData.slug}
                     onChange={handleInputChange}
-                    onBlur={checkSlugAvailability}
-                    className={`w-full pl-10 pr-10 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
-                      slugAvailable === false 
-                        ? 'border-red-300' 
-                        : slugAvailable === true 
-                          ? 'border-green-300' 
+                    className={`w-full pl-10 pr-10 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${slugAvailable === false
+                        ? 'border-red-300'
+                        : slugAvailable === true
+                          ? 'border-green-300'
                           : 'border-gray-300'
-                    }`}
+                      }`}
                     placeholder="electronics"
                     required
                     disabled={loading}
@@ -345,64 +319,11 @@ export function AddCategory({ isOpen, onClose, onSubmit, editingCategory, parent
                 )}
               </div>
 
-              {/* Parent Category */}
+              {/* Active Status */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">
-                  Parent Category
+                  Status
                 </label>
-                <select
-                  name="parentId"
-                  value={formData.parentId || ''}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  disabled={loading}
-                >
-                  <option value="">No Parent (Main Category)</option>
-                  {parentCategories
-                    .filter(cat => !editingCategory || cat._id !== editingCategory._id)
-                    .map(category => (
-                      <option key={category._id.toString()} value={category._id.toString()}>
-                        {category.name}
-                      </option>
-                    ))
-                  }
-                </select>
-              </div>
-
-              {/* Sort Order */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Sort Order
-                </label>
-                <input
-                  type="number"
-                  name="sortOrder"
-                  value={formData.sortOrder}
-                  onChange={handleInputChange}
-                  min="0"
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  placeholder="0"
-                  disabled={loading}
-                />
-                <p className="text-xs text-gray-500">Lower numbers appear first</p>
-              </div>
-
-              {/* Featured & Active */}
-              <div className="space-y-4">
-                <div className="flex items-center space-x-3">
-                  <input
-                    type="checkbox"
-                    name="isFeatured"
-                    checked={formData.isFeatured || false}
-                    onChange={handleInputChange}
-                    id="isFeatured"
-                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                    disabled={loading}
-                  />
-                  <label htmlFor="isFeatured" className="text-sm font-medium text-gray-700">
-                    Featured Category
-                  </label>
-                </div>
                 <div className="flex items-center space-x-3">
                   <input
                     type="checkbox"
@@ -413,85 +334,13 @@ export function AddCategory({ isOpen, onClose, onSubmit, editingCategory, parent
                     className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                     disabled={loading}
                   />
-                  <label htmlFor="isActive" className="text-sm font-medium text-gray-700">
+                  <label htmlFor="isActive" className="text-sm text-gray-700">
                     Active Category
                   </label>
                 </div>
-              </div>
-
-              {/* Description (Full width) */}
-              <div className="md:col-span-2 space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Description
-                </label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  rows={3}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  placeholder="Describe this category..."
-                  disabled={loading}
-                />
-              </div>
-
-              {/* Sub-categories */}
-              <div className="md:col-span-2 space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Sub-categories
-                  </label>
-                  <span className="text-sm text-gray-500">
-                    {subCategories.length} added
-                  </span>
-                </div>
-                
-                {/* Add Sub-category Input */}
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newSubCategory}
-                    onChange={(e) => setNewSubCategory(e.target.value)}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    placeholder="Add a sub-category"
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddSubCategory())}
-                    disabled={loading}
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddSubCategory}
-                    className="px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 flex items-center gap-2 disabled:opacity-50"
-                    disabled={loading}
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add
-                  </button>
-                </div>
-
-                {/* Sub-categories List */}
-                {subCategories.length > 0 && (
-                  <div className="border border-gray-200 rounded-lg overflow-hidden">
-                    {subCategories.map(subCategory => (
-                      <div
-                        key={subCategory.id}
-                        className="flex items-center justify-between p-3 border-b border-gray-100 last:border-b-0 hover:bg-gray-50"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <div className="w-2 h-2 rounded-full bg-gray-400"></div>
-                          <span>{subCategory.name}</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveSubCategory(subCategory.id)}
-                          className="p-1 text-gray-400 hover:text-red-600 disabled:opacity-50"
-                          disabled={loading}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <p className="text-xs text-gray-500">
+                  Inactive categories won't be displayed to customers
+                </p>
               </div>
             </div>
 

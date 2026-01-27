@@ -3,13 +3,10 @@
 
 import { useState } from 'react';
 import { Category } from '@/app/types/category.types';
-import { 
-  Edit2, 
-  Trash2, 
-  ChevronDown, 
-  ChevronRight, 
+import {
+  Edit2,
+  Trash2,
   Folder,
-  FolderOpen,
   Loader2
 } from 'lucide-react';
 
@@ -20,22 +17,13 @@ interface CategoryListProps {
   onDeleteCategory: (categoryId: string) => void;
 }
 
-export function CategoryList({ 
-  categories, 
-  loading, 
-  onEditCategory, 
-  onDeleteCategory 
+export function CategoryList({
+  categories,
+  loading,
+  onEditCategory,
+  onDeleteCategory
 }: CategoryListProps) {
-  const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  const toggleCategory = (categoryId: string) => {
-    setExpandedCategories(prev =>
-      prev.includes(categoryId)
-        ? prev.filter(id => id !== categoryId)
-        : [...prev, categoryId]
-    );
-  };
 
   const handleDelete = async (categoryId: string) => {
     try {
@@ -46,76 +34,51 @@ export function CategoryList({
     }
   };
 
-  const CategoryItem = ({ 
-    category, 
+  const CategoryItem = ({
+    category,
     level = 0,
-    isParent = false 
-  }: { 
-    category: Category; 
+  }: {
+    category: Category;
     level: number;
     isParent: boolean;
   }) => {
-    const hasSubCategories = category.subCategories && category.subCategories.length > 0;
-    const isExpanded = expandedCategories.includes(category._id.toString());
     const isDeleting = deletingId === category._id.toString();
 
     return (
       <>
         <div
-          className={`flex items-center justify-between p-4 hover:bg-gray-50 border-b border-gray-100 ${
-            level > 0 ? 'bg-gray-50' : 'bg-white'
-          }`}
+          className={`flex items-center justify-between p-4 hover:bg-gray-50 border-b border-gray-100 ${level > 0 ? 'bg-gray-50' : 'bg-white'
+            }`}
           style={{ paddingLeft: `${level * 24 + 16}px` }}
         >
           <div className="flex items-center space-x-3 flex-1">
-            {hasSubCategories ? (
-              <button
-                onClick={() => toggleCategory(category._id.toString())}
-                className="p-1 hover:bg-gray-200 rounded"
-                disabled={isDeleting}
-              >
-                {isExpanded ? (
-                  <ChevronDown className="w-4 h-4 text-gray-500" />
-                ) : (
-                  <ChevronRight className="w-4 h-4 text-gray-500" />
-                )}
-              </button>
-            ) : (
-              <div className="w-6" />
-            )}
-            
-            <div 
+
+            <div
               className="w-4 h-4 rounded-full"
-              style={{ backgroundColor: category.color }}
             />
-            
-            {hasSubCategories ? (
-              isExpanded ? (
-                <FolderOpen className="w-5 h-5 text-gray-500" />
-              ) : (
-                <Folder className="w-5 h-5 text-gray-500" />
-              )
-            ) : (
-              <div className="w-5 h-5" />
-            )}
-            
+
             <div className="flex-1">
               <div className="flex items-center space-x-3">
+                {(category.category_image) && (
+                  <div className="relative">
+                    <div className="w-full h-16 bg-gray-100 rounded-lg overflow-hidden">
+                      <img
+                        src={category.category_image}
+                        alt="Category preview"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+
+                  </div>
+                )}
                 <h3 className="font-medium text-gray-900">{category.name}</h3>
                 {!category.isActive && (
                   <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full">
                     Inactive
                   </span>
                 )}
-                {category.isFeatured && (
-                  <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
-                    Featured
-                  </span>
-                )}
               </div>
-              {category.description && (
-                <p className="text-sm text-gray-500">{category.description}</p>
-              )}
+
             </div>
           </div>
 
@@ -145,16 +108,6 @@ export function CategoryList({
             </div>
           </div>
         </div>
-
-        {/* Render sub-categories if expanded */}
-        {hasSubCategories && isExpanded && category.subCategories?.map(subCategory => (
-          <CategoryItem
-            key={subCategory._id.toString()}
-            category={subCategory}
-            level={level + 1}
-            isParent={false}
-          />
-        ))}
       </>
     );
   };

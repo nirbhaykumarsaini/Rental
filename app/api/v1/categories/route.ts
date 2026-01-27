@@ -1,10 +1,12 @@
+// app/api/categories/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/app/config/db';
-import Category, { ICategory } from '@/app/models/Category';
-import Product from '@/app/models/Product';
+import Category from '@/app/models/Category';
 import mongoose from 'mongoose';
+import { uploadToCloudinary } from '@/app/utils/cloudinary';
+import Product from '@/app/models/Product';
 
-// GET - Fetch all categories with pagination and filters
+// GET - Fetch all categories with product count using aggregation
 export async function GET(request: NextRequest) {
   try {
     await connectDB();
@@ -12,95 +14,96 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
-    const parentId = searchParams.get('parentId');
-    const featured = searchParams.get('featured');
     const active = searchParams.get('active');
     const search = searchParams.get('search');
-    const sortBy = searchParams.get('sortBy') || 'sortOrder';
-    const sortOrder = searchParams.get('sortOrder') || 'asc';
-    const withSubcategories = searchParams.get('withSubcategories') === 'true';
     const withProductCount = searchParams.get('withProductCount') === 'true';
-
     const skip = (page - 1) * limit;
 
-    // Build query
-    const query: any = {};
-
-    if (parentId === 'null' || parentId === '') {
-      query.parentId = null;
-    } else if (parentId) {
-      if (mongoose.Types.ObjectId.isValid(parentId)) {
-        query.parentId = new mongoose.Types.ObjectId(parentId);
-      }
-    }
-
-    if (featured === 'true') {
-      query.isFeatured = true;
-    }
-
+    // Build base query for match stage
+    const matchQuery: any = {};
+    
     if (active === 'true') {
-      query.isActive = true;
+      matchQuery.isActive = true;
     } else if (active === 'false') {
-      query.isActive = false;
+      matchQuery.isActive = false;
     }
 
     if (search) {
-      query.$or = [
+      matchQuery.$or = [
         { name: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
         { slug: { $regex: search, $options: 'i' } }
       ];
     }
 
-    // Build sort object
-    const sort: any = {};
-    sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+    // Build aggregation pipeline
+    const pipeline: any[] = [];
 
-    // Build population options
-    const populateOptions = [];
-    if (withSubcategories) {
-      populateOptions.push({
-        path: 'subCategories',
-        match: { isActive: true },
-        options: { sort: { sortOrder: 1, name: 1 } }
-      });
+    // Add match stage if filters exist
+    if (Object.keys(matchQuery).length > 0) {
+      pipeline.push({ $match: matchQuery });
     }
+
+    // Add product count using $lookup
     if (withProductCount) {
-      populateOptions.push({
-        path: 'productCount'
-      });
+      pipeline.push(
+        {
+          $lookup: {
+            from: 'products',
+            let: { categorySlug: { $toString: '$slug' } },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $eq: ['$category', '$$categorySlug']
+                  },
+                  isPublished: true // Only count published products
+                }
+              }
+            ],
+            as: 'products'
+          }
+        },
+        {
+          $addFields: {
+            productCount: { $size: '$products' }
+          }
+        },
+        {
+          $project: {
+            products: 0 // Remove the products array from final result
+          }
+        }
+      );
     }
 
-    // Execute query with pagination
-    const [categories, total] = await Promise.all([
-      Category.find(query)
-        .sort(sort)
-        .skip(skip)
-        .limit(limit)
-        .populate(populateOptions)
-        .select('-__v')
-        .lean(),
-      Category.countDocuments(query)
+    // Add sort, skip, and limit
+    pipeline.push(
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+      {
+        $project: {
+          __v: 0,
+          updatedAt: 0 // Remove if you need updatedAt
+        }
+      }
+    );
+
+    // Get total count for pagination
+    const totalPipeline = [];
+    if (Object.keys(matchQuery).length > 0) {
+      totalPipeline.push({ $match: matchQuery });
+    }
+    totalPipeline.push({ $count: 'total' });
+
+    const [categories, totalResult] = await Promise.all([
+      Category.aggregate(pipeline),
+      Category.aggregate(totalPipeline)
     ]);
 
-    // For hierarchy view
-    if (withSubcategories && parentId === 'null') {
-      const hierarchy = await Category.find();
-      return NextResponse.json({
-        status: true,
-        data: hierarchy,
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages: 1,
-          hasNextPage: false,
-          hasPrevPage: false
-        }
-      });
-    }
+    const total = totalResult[0]?.total || 0;
 
-    // Calculate pagination metadata
+    // Pagination metadata
     const totalPages = Math.ceil(total / limit);
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
@@ -127,15 +130,20 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Create new category
+// POST - Create new category with image upload
 export async function POST(request: NextRequest) {
   try {
     await connectDB();
 
-    const body = await request.json();
-    
+    const formData = await request.formData();
+    const name = formData.get('name') as string;
+    const slug = formData.get('slug') as string;
+    const isActive = formData.get('isActive') === 'true';
+    const createdBy = formData.get('createdBy') as string;
+    const imageFile = formData.get('category_image') as File;
+
     // Validate required fields
-    if (!body.name) {
+    if (!name) {
       return NextResponse.json(
         { status: false, message: 'Category name is required' },
         { status: 400 }
@@ -143,8 +151,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate slug if not provided
-    if (!body.slug && body.name) {
-      body.slug = body.name
+    let categorySlug = slug;
+    if (!categorySlug && name) {
+      categorySlug = name
         .toLowerCase()
         .replace(/[^\w\s-]/g, '')
         .replace(/\s+/g, '-')
@@ -152,49 +161,50 @@ export async function POST(request: NextRequest) {
         .trim();
     }
 
-    // Validate parent category exists if provided
-    if (body.parentId) {
-      if (!mongoose.Types.ObjectId.isValid(body.parentId)) {
-        return NextResponse.json(
-          { status: false, message: 'Invalid parent category ID' },
-          { status: 400 }
-        );
-      }
-      
-      const parentCategory = await Category.findById(body.parentId);
-      if (!parentCategory) {
-        return NextResponse.json(
-          { status: false, message: 'Parent category not found' },
-          { status: 404 }
-        );
-      }
+    // Validate slug
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(categorySlug)) {
+      return NextResponse.json(
+        { status: false, message: 'Invalid slug format' },
+        { status: 400 }
+      );
+    }
 
-      // Check for circular reference
-      if (body.parentId === body._id) {
+    // Check if slug already exists
+    const existingCategory = await Category.findOne({ slug: categorySlug });
+    if (existingCategory) {
+      return NextResponse.json(
+        { status: false, message: 'Category slug already exists' },
+        { status: 409 }
+      );
+    }
+
+    let imageUrl = '';
+    
+    // Upload image to Cloudinary if provided
+    if (imageFile && imageFile.size > 0) {
+      try {
+        const uploadResult = await uploadToCloudinary(imageFile, 'categories');
+        imageUrl = uploadResult.secure_url;
+      } catch (uploadError) {
+        console.error('Error uploading image to Cloudinary:', uploadError);
         return NextResponse.json(
-          { status: false, message: 'Category cannot be its own parent' },
-          { status: 400 }
+          { status: false, message: 'Failed to upload category image' },
+          { status: 500 }
         );
       }
     }
 
-    // Set default values
-    const categoryData: Partial<ICategory> = {
-      name: body.name,
-      slug: body.slug,
-      parentId: body.parentId || null,
-      color: body.color || '#3B82F6',
-      sortOrder: body.sortOrder || 0,
-      isFeatured: body.isFeatured || false,
-      isActive: body.isActive !== undefined ? body.isActive : true
+    // Create category data
+    const categoryData: any = {
+      name,
+      slug: categorySlug,
+      isActive,
+      category_image: imageUrl
     };
 
-    // Optional fields
-    if (body.description) categoryData.description = body.description;
-    if (body.icon) categoryData.icon = body.icon;
-    if (body.metaTitle) categoryData.metaTitle = body.metaTitle;
-    if (body.metaDescription) categoryData.metaDescription = body.metaDescription;
-    if (body.createdBy) categoryData.createdBy = new mongoose.Types.ObjectId(body.createdBy);
+    if (createdBy && mongoose.Types.ObjectId.isValid(createdBy)) {
+      categoryData.createdBy = new mongoose.Types.ObjectId(createdBy);
+    }
 
     // Create category
     const category = await Category.create(categoryData);
@@ -208,7 +218,6 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Error creating category:', error);
     
-    // Handle duplicate slug error
     if (error.code === 11000) {
       return NextResponse.json(
         { status: false, message: 'Category slug already exists' },
