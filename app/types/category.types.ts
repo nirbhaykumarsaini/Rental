@@ -1,5 +1,5 @@
 import { ICategoryDocument } from '@/app/models/Category';
-import { Model, Types } from 'mongoose';
+
 
 export interface Category extends ICategoryDocument {
   subCategories?: Category[];

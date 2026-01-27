@@ -1,6 +1,7 @@
 // app/types/product.types.ts
 
 export interface ProductVariantSize {
+  _id:string;
   size: string;
   inventory: number;
   sku: string;
@@ -8,6 +9,7 @@ export interface ProductVariantSize {
 }
 
 export interface ProductVariant {
+  _id:string;
   color: string;
   colorCode: string; // Hex color code
   images: string[];
