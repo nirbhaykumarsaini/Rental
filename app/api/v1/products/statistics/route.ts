@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
       }
 
       const productInventory = product.variants.reduce(
-        (variantSum: number, variant: { sizes: ProductVariantSize }) => {
+        (variantSum: number, variant: { sizes: ProductVariantSize[] }) => {
           const variantTotal = variant.sizes.reduce(
             (sizeSum: number, size: { inventory: number }) => {
               return sizeSum + (size.inventory || 0);
