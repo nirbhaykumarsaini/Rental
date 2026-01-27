@@ -56,8 +56,8 @@ export function CategoryList({
     isParent: boolean;
   }) => {
     const hasSubCategories = category.subCategories && category.subCategories.length > 0;
-    const isExpanded = expandedCategories.includes(category._id);
-    const isDeleting = deletingId === category._id;
+    const isExpanded = expandedCategories.includes(category._id.toString());
+    const isDeleting = deletingId === category._id.toString();
 
     return (
       <>
@@ -70,7 +70,7 @@ export function CategoryList({
           <div className="flex items-center space-x-3 flex-1">
             {hasSubCategories ? (
               <button
-                onClick={() => toggleCategory(category._id)}
+                onClick={() => toggleCategory(category._id.toString())}
                 className="p-1 hover:bg-gray-200 rounded"
                 disabled={isDeleting}
               >
@@ -132,7 +132,7 @@ export function CategoryList({
                 <Edit2 className="w-4 h-4" />
               </button>
               <button
-                onClick={() => handleDelete(category._id)}
+                onClick={() => handleDelete(category._id.toString())}
                 disabled={isDeleting}
                 className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -149,7 +149,7 @@ export function CategoryList({
         {/* Render sub-categories if expanded */}
         {hasSubCategories && isExpanded && category.subCategories?.map(subCategory => (
           <CategoryItem
-            key={subCategory._id}
+            key={subCategory._id.toString()}
             category={subCategory}
             level={level + 1}
             isParent={false}
@@ -192,7 +192,7 @@ export function CategoryList({
       <div className="divide-y divide-gray-100">
         {categories.map(category => (
           <CategoryItem
-            key={category._id}
+            key={category._id.toString()}
             category={category}
             level={0}
             isParent={true}

@@ -84,7 +84,7 @@ export default function CategoriesPage() {
       
       if (editingCategory) {
         // Update existing category
-        response = await categoryService.updateCategory(editingCategory._id, categoryData);
+        response = await categoryService.updateCategory(editingCategory._id.toString(), categoryData);
       } else {
         // Create new category
         response = await categoryService.createCategory(categoryData);
