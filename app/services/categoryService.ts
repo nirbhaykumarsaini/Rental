@@ -717,39 +717,6 @@ class CategoryService {
     }
   }
 
-  async getCategoryTree(): Promise<ApiResponse<Array<Category & { children?: Category[] }>>> {
-    try {
-      const response = await this.getCategoryHierarchy();
-      
-      if (!response.status || !response.data) {
-        return response;
-      }
-
-      // Transform hierarchy into tree structure
-      const buildTree = (categories: Category[], parentId: string | null = null) => {
-        return categories
-          .filter(cat => cat.parentId?.toString() === parentId)
-          .map(cat => ({
-            ...cat,
-            children: buildTree(categories, cat._id.toString())
-          }));
-      };
-
-      const tree = buildTree(response.data);
-      
-      return {
-        status: true,
-        data: tree
-      };
-    } catch (error) {
-      console.error('Error building category tree:', error);
-      return {
-        status: false,
-        message: error instanceof Error ? error.message : 'Failed to build category tree'
-      };
-    }
-  }
-
   async moveCategory(categoryId: string, newParentId: string | null): Promise<ApiResponse<Category>> {
     try {
       if (!categoryId) {
