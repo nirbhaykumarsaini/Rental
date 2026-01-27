@@ -852,28 +852,6 @@ class CategoryService {
     }
   }
 
-  // Helper for optimistic updates
-  updateLocalCategory(categories: Category[], updatedCategory: Category): Category[] {
-    return categories.map(category => {
-      if (category._id.toString() === updatedCategory._id.toString()) {
-        return { ...category, ...updatedCategory };
-      }
-      
-      // Update in subcategories if it exists there
-      if (category.subCategories) {
-        const updatedSubCategories = category.subCategories.map(subCat =>
-          subCat._id.toString() === updatedCategory._id.toString() ? { ...subCat, ...updatedCategory } : subCat
-        );
-        
-        if (JSON.stringify(category.subCategories) !== JSON.stringify(updatedSubCategories)) {
-          return { ...category, subCategories: updatedSubCategories };
-        }
-      }
-      
-      return category;
-    });
-  }
-
   removeLocalCategory(categories: Category[], categoryId: string): Category[] {
     return categories.filter(category => {
       // Remove main category
@@ -883,7 +861,7 @@ class CategoryService {
       
       // Filter out from subcategories
       if (category.subCategories) {
-        const filteredSubCategories = category.subCategories.filter(subCat => subCat.id !== categoryId);
+        const filteredSubCategories = category.subCategories.filter(subCat => subCat._id.toString() !== categoryId);
         if (filteredSubCategories.length !== category.subCategories.length) {
           category.subCategories = filteredSubCategories;
         }
