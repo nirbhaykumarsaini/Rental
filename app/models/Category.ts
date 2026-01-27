@@ -133,7 +133,7 @@ categorySchema.virtual('path').get(function() {
 
 // Middleware to ensure a category cannot be its own parent
 categorySchema.pre('save', async function() {
-  if (this.parentId && this.parentId.equals(this._id)) {
+  if (this.parentId && this.parentId  === this._id.toString()) {
     throw new Error('Category cannot be its own parent');
   }
 });
