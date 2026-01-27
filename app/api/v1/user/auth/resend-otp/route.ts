@@ -5,6 +5,7 @@ import User from '@/app/models/User';
 import APIError from '@/app/lib/errors/APIError';
 import { errorHandler } from '@/app/lib/errors/errorHandler';
 import { resendOtpSchema } from '@/app/utils/validation';
+import { ZodErrorHandler } from '@/app/lib/helpers/validationHelper';
 
 // POST - RESEND OTP
 export async function POST(request: NextRequest) {
@@ -17,10 +18,10 @@ export async function POST(request: NextRequest) {
     // Validate request body
     const validationResult = resendOtpSchema.safeParse(body);
     
-    if (!validationResult.success) {
-      const errors = validationResult.error.errors.map(err => err.message).join(', ');
-      throw new APIError(errors, 400);
-    }
+      if (!validationResult.success) {
+          const errorMessage = ZodErrorHandler.format(validationResult.error);
+          throw new APIError(errorMessage, 400);
+        }
 
     const { mobile } = validationResult.data;
 

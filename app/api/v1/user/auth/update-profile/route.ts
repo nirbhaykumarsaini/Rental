@@ -6,6 +6,7 @@ import APIError from '@/app/lib/errors/APIError';
 import { errorHandler } from '@/app/lib/errors/errorHandler';
 import { updateProfileSchema } from '@/app/utils/validation';
 import { authenticate } from '@/app/middlewares/authMiddleware';
+import { ZodErrorHandler } from '@/app/lib/helpers/validationHelper';
 
 // PUT - UPDATE PROFILE
 export async function PUT(request: NextRequest) {
@@ -21,10 +22,10 @@ export async function PUT(request: NextRequest) {
     // Validate request body
     const validationResult = updateProfileSchema.safeParse(body);
     
-    if (!validationResult.success) {
-      const errors = validationResult.error.errors.map(err => err.message).join(', ');
-      throw new APIError(errors, 400);
-    }
+      if (!validationResult.success) {
+          const errorMessage = ZodErrorHandler.format(validationResult.error);
+          throw new APIError(errorMessage, 400);
+        }
 
     const { name, email } = validationResult.data;
 
