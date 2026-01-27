@@ -10,7 +10,7 @@ export interface CategoryFormData {
   name: string;
   description?: string;
   slug: string;
-  parentId?:Types.ObjectId | undefined | null  | string ;
+  parentId?:string;
   icon?: string;
   color: string;
   sortOrder?: number;

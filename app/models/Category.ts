@@ -5,7 +5,7 @@ export interface ICategory {
   name: string;
   description?: string;
   slug: string;
-  parentId: mongoose.Types.ObjectId | null;
+  parentId: string;
   icon?: string;
   color: string;
   sortOrder: number;
@@ -49,7 +49,7 @@ const categorySchema = new Schema<ICategoryDocument>(
       match: [/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Please enter a valid slug']
     },
     parentId: { 
-      type: Schema.Types.ObjectId, 
+      type: String, 
       ref: 'Category',
       default: null,
       index: true

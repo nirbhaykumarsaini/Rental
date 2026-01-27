@@ -32,7 +32,7 @@ export function AddCategory({ isOpen, onClose, onSubmit, editingCategory, parent
     description: '',
     color: '#3B82F6',
     slug: '',
-    parentId: null,
+    parentId: '',
     sortOrder: 0,
     isFeatured: false,
     isActive: true,
@@ -50,7 +50,7 @@ export function AddCategory({ isOpen, onClose, onSubmit, editingCategory, parent
       description: '',
       color: '#3B82F6',
       slug: '',
-      parentId: null,
+      parentId: '',
       sortOrder: 0,
       isFeatured: false,
       isActive: true,
@@ -165,7 +165,7 @@ export function AddCategory({ isOpen, onClose, onSubmit, editingCategory, parent
       slug: formData.slug || '',
       color: formData.color || '#3B82F6',
       description: formData.description,
-      parentId: formData.parentId,
+      parentId: formData.parentId || '',
       subCategories: subCategories.map(sc => sc.name),
     });
 
@@ -193,7 +193,7 @@ export function AddCategory({ isOpen, onClose, onSubmit, editingCategory, parent
       description: formData.description,
       color: formData.color || '#3B82F6',
       slug: formData.slug || '',
-      parentId: formData.parentId ?? null,
+      parentId: formData.parentId ?? '',
       sortOrder: formData.sortOrder || 0,
       isFeatured: formData.isFeatured || false,
       isActive: formData.isActive !== undefined ? formData.isActive : true,
@@ -352,7 +352,7 @@ export function AddCategory({ isOpen, onClose, onSubmit, editingCategory, parent
                 </label>
                 <select
                   name="parentId"
-                  value={formData.parentId}
+                  value={formData.parentId || ''}
                   onChange={handleInputChange}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   disabled={loading}
