@@ -13,8 +13,6 @@ import {
   UserX,
   CheckCircle,
   MessageSquare,
-  Tag,
-  Calendar,
   Users
 } from 'lucide-react';
 
@@ -421,23 +419,6 @@ export function CustomerList({ onViewCustomer }: CustomerListProps) {
                       title="View Details"
                     >
                       <Eye className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => console.log('Send email to:', customer.email)}
-                      className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
-                      title="Send Email"
-                    >
-                      <Mail className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => console.log('Message customer:', customer.id)}
-                      className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg"
-                      title="Send Message"
-                    >
-                      <MessageSquare className="w-4 h-4" />
-                    </button>
-                    <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg">
-                      <MoreVertical className="w-4 h-4" />
                     </button>
                   </div>
                 </td>

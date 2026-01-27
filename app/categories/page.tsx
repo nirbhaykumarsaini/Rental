@@ -82,7 +82,7 @@ export default function CategoriesPage() {
     setIsAddModalOpen(true);
   };
 
-  const handleSubmitCategory = async (categoryData: CategoryFormData, imageFile?: File) => {
+  const handleSubmitCategory = async (categoryData: Category, imageFile?: File) => {
     try {
       let response;
       

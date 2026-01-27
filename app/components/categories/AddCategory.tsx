@@ -2,14 +2,14 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Category, CategoryFormData } from '@/app/types/category.types';
+import { Category } from '@/app/types/category.types';
 import { X, Plus, Trash2, Palette, Hash, Loader2, Check, Upload, Image as ImageIcon } from 'lucide-react';
 import categoryService from '@/app/services/categoryService';
 
 interface AddCategoryProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (categoryData: CategoryFormData, imageFile?: File) => void;
+  onSubmit: (categoryData: Category, imageFile?: File) => void;
   editingCategory: Category | null;
   parentCategories: Category[];
 }
@@ -145,7 +145,7 @@ export function AddCategory({ isOpen, onClose, onSubmit, editingCategory }: AddC
       return;
     }
 
-    const categoryData: CategoryFormData = {
+    const categoryData: Category = {
       name: formData.name || '',
       category_image: formData.category_image || '',
       slug: formData.slug || '',

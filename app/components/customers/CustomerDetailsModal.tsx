@@ -930,50 +930,7 @@ export function CustomerDetailsModal({ isOpen, onClose, customer }: CustomerDeta
                                             </div>
                                         </div>
                                     )}
-                                </div>
-
-                                {/* Quick Actions */}
-                                <div className="bg-white border border-gray-200 rounded-xl p-6">
-                                    <h3 className="text-lg font-semibold text-gray-900 mb-6">Quick Actions</h3>
-                                    <div className="space-y-3">
-                                        <button className="w-full flex items-center justify-between px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm">
-                                            <div className="flex items-center space-x-3">
-                                                <Mail className="w-4 h-4 text-gray-400" />
-                                                <span>Send Cart Reminder</span>
-                                            </div>
-                                            {mockCartItems.length > 0 && (
-                                                <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs">
-                                                    {mockCartItems.length} items
-                                                </span>
-                                            )}
-                                        </button>
-                                        <button className="w-full flex items-center justify-between px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm">
-                                            <div className="flex items-center space-x-3">
-                                                <Heart className="w-4 h-4 text-pink-400" />
-                                                <span>Send Favorites Update</span>
-                                            </div>
-                                            {mockFavorites.length > 0 && (
-                                                <span className="bg-pink-100 text-pink-700 px-2 py-1 rounded-full text-xs">
-                                                    {mockFavorites.length} items
-                                                </span>
-                                            )}
-                                        </button>
-                                        <button className="w-full flex items-center justify-between px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm">
-                                            <div className="flex items-center space-x-3">
-                                                <CreditCard className="w-4 h-4 text-gray-400" />
-                                                <span>View Order History</span>
-                                            </div>
-                                            <span className="text-gray-400">{mockOrders.length}</span>
-                                        </button>
-                                        <button className="w-full flex items-center justify-between px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm">
-                                            <div className="flex items-center space-x-3">
-                                                <Bell className="w-4 h-4 text-gray-400" />
-                                                <span>Set Follow-up</span>
-                                            </div>
-                                            <Plus className="w-4 h-4 text-gray-400" />
-                                        </button>
-                                    </div>
-                                </div>
+                                </div>                                
 
                                 {/* Purchase Insights */}
                                 <div className="bg-white border border-gray-200 rounded-xl p-6">
@@ -1019,16 +976,7 @@ export function CustomerDetailsModal({ isOpen, onClose, customer }: CustomerDeta
                         >
                             Close
                         </button>
-                        <button
-                            onClick={() => {
-                                console.log('Send cart reminder to:', customer.email);
-                                // Send cart reminder logic
-                            }}
-                            className="px-6 py-2.5 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700"
-                            disabled={mockCartItems.length === 0}
-                        >
-                            Send Cart Reminder
-                        </button>
+                    
                     </div>
                 </div>
             </div>

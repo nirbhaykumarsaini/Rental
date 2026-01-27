@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Calendar, Filter, X, Tag, Users } from 'lucide-react';
+import { Search, Calendar, Filter, X, Tag } from 'lucide-react';
 
 interface CustomerFiltersProps {
   isOpen: boolean;
