@@ -48,7 +48,8 @@ const defaultVariant: Omit<ProductVariant, '_id'> = {
   price: 0,
   sizes: [{
     ...defaultSize,
-    size: 'Default'
+    size: 'Default',
+    _id: ''
   }],
   isActive: true
 };
