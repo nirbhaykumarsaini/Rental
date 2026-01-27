@@ -76,7 +76,7 @@ export function AddCategory({ isOpen, onClose, onSubmit, editingCategory, parent
 
       setSubCategories(
         editingCategory.subCategories?.map(sc => ({
-          id: sc.id,
+          id: sc._id.toString(),
           name: sc.name,
         })) || []
       );
@@ -138,7 +138,7 @@ export function AddCategory({ isOpen, onClose, onSubmit, editingCategory, parent
       setCheckingSlug(true);
       const response = await categoryService.checkSlugAvailability(
         formData.slug,
-        editingCategory?.id
+        editingCategory?._id.toString()
       );
       
       if (response.status && response.data) {
@@ -359,9 +359,9 @@ export function AddCategory({ isOpen, onClose, onSubmit, editingCategory, parent
                 >
                   <option value="">No Parent (Main Category)</option>
                   {parentCategories
-                    .filter(cat => !editingCategory || cat.id !== editingCategory.id)
+                    .filter(cat => !editingCategory || cat._id !== editingCategory._id)
                     .map(category => (
-                      <option key={category.id} value={category.id}>
+                      <option key={category._id.toString()} value={category._id.toString()}>
                         {category.name}
                       </option>
                     ))
