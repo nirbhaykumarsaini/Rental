@@ -667,7 +667,7 @@ class CategoryService {
       }
 
       const selectOptions = response.data.map(category => ({
-        value: category.id,
+        value: category._id.toString(),
         label: category.name,
         ...(includeColors && { color: category.color }),
         hasSubcategories: category.subCategories && category.subCategories.length > 0
@@ -699,7 +699,7 @@ class CategoryService {
       }
 
       const selectOptions = response.data.map(category => ({
-        value: category.id,
+        value: category._id.toString(),
         label: category.name,
         ...(includeColors && { color: category.color })
       }));
@@ -731,7 +731,7 @@ class CategoryService {
           .filter(cat => cat.parentId?.toString() === parentId)
           .map(cat => ({
             ...cat,
-            children: buildTree(categories, cat.id)
+            children: buildTree(categories, cat._id.toString())
           }));
       };
 
@@ -778,7 +778,7 @@ class CategoryService {
         }
       }
 
-      return this.updateCategory(categoryId, { parentId: newParentId });
+      return this.updateCategory(categoryId, { parentId: newParentId?.toString() });
     } catch (error) {
       console.error(`Error moving category ${categoryId}:`, error);
       return {
@@ -888,14 +888,14 @@ class CategoryService {
   // Helper for optimistic updates
   updateLocalCategory(categories: Category[], updatedCategory: Category): Category[] {
     return categories.map(category => {
-      if (category.id === updatedCategory.id) {
+      if (category._id.toString() === updatedCategory._id.toString()) {
         return { ...category, ...updatedCategory };
       }
       
       // Update in subcategories if it exists there
       if (category.subCategories) {
         const updatedSubCategories = category.subCategories.map(subCat =>
-          subCat.id === updatedCategory.id ? { ...subCat, ...updatedCategory } : subCat
+          subCat._id.toString() === updatedCategory._id.toString() ? { ...subCat, ...updatedCategory } : subCat
         );
         
         if (JSON.stringify(category.subCategories) !== JSON.stringify(updatedSubCategories)) {
@@ -910,7 +910,7 @@ class CategoryService {
   removeLocalCategory(categories: Category[], categoryId: string): Category[] {
     return categories.filter(category => {
       // Remove main category
-      if (category.id === categoryId) {
+      if (category._id.toString() === categoryId) {
         return false;
       }
       
