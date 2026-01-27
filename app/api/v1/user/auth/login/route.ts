@@ -1,11 +1,11 @@
 // D:\B2B\app\api\v1\user\auth\login\route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/app/config/db';
-import User from '@/app/models/User';
-import APIError from '@/app/lib/errors/APIError';
-import { errorHandler } from '@/app/lib/errors/errorHandler';
-import { registerSchema } from '@/app/utils/validation';
-import { ZodErrorHandler } from '@/app/lib/helpers/validationHelper';
+import { NextRequest, NextResponse } from "next/server";
+import connectDB from "@/app/config/db";
+import User from "@/app/models/User";
+import APIError from "@/app/lib/errors/APIError";
+import { errorHandler } from "@/app/lib/errors/errorHandler";
+import { registerSchema } from "@/app/utils/validation";
+import { ZodErrorHandler } from "@/app/lib/helpers/validationHelper";
 
 // POST - LOGIN (Send OTP)
 export async function POST(request: NextRequest) {
@@ -17,11 +17,11 @@ export async function POST(request: NextRequest) {
 
     // Validate request body
     const validationResult = registerSchema.safeParse(body);
-    
-      if (!validationResult.success) {
-          const errorMessage = ZodErrorHandler.format(validationResult.error);
-          throw new APIError(errorMessage, 400);
-        }
+
+    if (!validationResult.success) {
+      const errorMessage = ZodErrorHandler.format(validationResult.error);
+      throw new APIError(errorMessage, 400);
+    }
 
     const { mobile } = validationResult.data;
 
@@ -29,26 +29,28 @@ export async function POST(request: NextRequest) {
     const user = await User.findOne({ mobile });
 
     if (!user) {
-      throw new APIError('User not found. Please register first', 404);
+      throw new APIError("User not found. Please register first", 404);
     }
 
     // Generate OTP
-    const otp = '1234'; // Fixed OTP for now
+    const otp = "1234"; // Fixed OTP for now
     const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     user.otp = otp;
     user.otpExpiresAt = otpExpiresAt;
     await user.save();
 
-    return NextResponse.json({
-      status: true,
-      message: 'OTP sent successfully',
-      data: {
-        mobile: user.mobile,
-        otpExpiresAt: user.otpExpiresAt
-      }
-    }, { status: 200 });
-
+    return NextResponse.json(
+      {
+        status: true,
+        message: "OTP sent successfully",
+        data: {
+          mobile: user.mobile,
+          otpExpiresAt: user.otpExpiresAt,
+        },
+      },
+      { status: 200 },
+    );
   } catch (error: any) {
     return errorHandler(error);
   }

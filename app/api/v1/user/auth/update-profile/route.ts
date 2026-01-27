@@ -8,8 +8,8 @@ import { updateProfileSchema } from '@/app/utils/validation';
 import { authenticate } from '@/app/middlewares/authMiddleware';
 import { ZodErrorHandler } from '@/app/lib/helpers/validationHelper';
 
-// PUT - UPDATE PROFILE
-export async function PUT(request: NextRequest) {
+// POST - UPDATE PROFILE
+export async function POST(request: NextRequest) {
   try {
     // Authenticate user
     const { userId } = await authenticate(request);
