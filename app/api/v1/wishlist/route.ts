@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if product already exists in wishlist
-    const existingItemIndex = wishlist.items.findIndex(item => {
+    const existingItemIndex = wishlist.items.findIndex((item: { productId: { toString: () => any; }; variantId: any; }) => {
       const sameProduct = item.productId.toString() === productId;
       const sameVariant = variantId ? item.variantId === variantId : true;
       return sameProduct && sameVariant;
