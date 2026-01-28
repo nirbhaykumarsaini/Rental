@@ -921,22 +921,9 @@ class ProductService {
     formData.append('hasVariants', product.hasVariants.toString());
     formData.append('isFeatured', product.isFeatured.toString());
     formData.append('isPublished', product.isPublished.toString());
-    
-    // Optional fields
-    if (product.subcategory) {
-      formData.append('subcategory', product.subcategory);
-    }
-    if (product.shortDescription) {
-      formData.append('shortDescription', product.shortDescription);
-    }
+
     if (product.weight) {
       formData.append('weight', product.weight.toString());
-    }
-    if (product.metaTitle) {
-      formData.append('metaTitle', product.metaTitle);
-    }
-    if (product.metaDescription) {
-      formData.append('metaDescription', product.metaDescription);
     }
     
     // Tags

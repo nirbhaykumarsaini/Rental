@@ -24,10 +24,8 @@ export interface IProduct {
   slug: string;
   name: string;
   category: string;
-  subcategory?: string;
   minOrderQuantity: number;
   description: string;
-  shortDescription?: string;
   images: string[];
   mainImage?: string;
   tags: string[];
@@ -42,8 +40,6 @@ export interface IProduct {
   isFeatured: boolean;
   isPublished: boolean;
   status: 'draft' | 'in-stock' | 'low-stock' | 'out-of-stock' | 'archived';
-  metaTitle?: string;
-  metaDescription?: string;
   createdBy?: mongoose.Types.ObjectId;
   updatedBy?: mongoose.Types.ObjectId;
 }
@@ -134,10 +130,6 @@ const productSchema = new Schema<IProductDocument>(
       required: [true, 'Category is required'],
       trim: true
     },
-    subcategory: { 
-      type: String, 
-      trim: true 
-    },
     minOrderQuantity: { 
       type: Number, 
       required: [true, 'Minimum order quantity is required'],
@@ -148,11 +140,6 @@ const productSchema = new Schema<IProductDocument>(
       type: String, 
       required: [true, 'Description is required'],
       trim: true
-    },
-    shortDescription: { 
-      type: String, 
-      trim: true,
-      maxlength: [200, 'Short description cannot exceed 200 characters']
     },
     images: [{ 
       type: String, 
@@ -192,16 +179,6 @@ const productSchema = new Schema<IProductDocument>(
       enum: ['draft', 'in-stock', 'low-stock', 'out-of-stock', 'archived'],
       default: 'draft'
     },
-    metaTitle: { 
-      type: String, 
-      trim: true,
-      maxlength: [70, 'Meta title cannot exceed 70 characters']
-    },
-    metaDescription: { 
-      type: String, 
-      trim: true,
-      maxlength: [160, 'Meta description cannot exceed 160 characters']
-    },
     createdBy: { 
       type: Schema.Types.ObjectId, 
       ref: 'User' 
@@ -221,7 +198,7 @@ const productSchema = new Schema<IProductDocument>(
 // Indexes for better query performance
 productSchema.index({ slug: 1 }, { unique: true });
 productSchema.index({ name: 'text', description: 'text', tags: 'text' });
-productSchema.index({ category: 1, subcategory: 1 });
+productSchema.index({ category: 1});
 productSchema.index({ status: 1, isPublished: 1 });
 productSchema.index({ isFeatured: 1 });
 productSchema.index({ 'variants.sizes.inventory': 1 });

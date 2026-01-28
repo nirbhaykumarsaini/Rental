@@ -173,17 +173,9 @@ export async function PUT(
     }
     
     // Update additional fields
-    const subcategory = formData.get('subcategory') as string;
-    const shortDescription = formData.get('shortDescription') as string;
     const weight = formData.get('weight') as string;
-    const metaTitle = formData.get('metaTitle') as string;
-    const metaDescription = formData.get('metaDescription') as string;
     
-    if (subcategory !== undefined) product.subcategory = subcategory;
-    if (shortDescription !== undefined) product.shortDescription = shortDescription;
     if (weight !== undefined) product.weight = parseFloat(weight) || undefined;
-    if (metaTitle !== undefined) product.metaTitle = metaTitle;
-    if (metaDescription !== undefined) product.metaDescription = metaDescription;
     
     // Handle dimensions
     const length = formData.get('dimensions.length') as string;

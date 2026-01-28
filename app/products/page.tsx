@@ -149,21 +149,8 @@ export default function ProductsPage() {
     formData.append('isFeatured', productData.isFeatured.toString());
     formData.append('isPublished', productData.isPublished.toString());
     
-    // Optional fields
-    if (productData.subcategory) {
-      formData.append('subcategory', productData.subcategory);
-    }
-    if (productData.shortDescription) {
-      formData.append('shortDescription', productData.shortDescription);
-    }
     if (productData.weight) {
       formData.append('weight', productData.weight.toString());
-    }
-    if (productData.metaTitle) {
-      formData.append('metaTitle', productData.metaTitle);
-    }
-    if (productData.metaDescription) {
-      formData.append('metaDescription', productData.metaDescription);
     }
     
     // Tags

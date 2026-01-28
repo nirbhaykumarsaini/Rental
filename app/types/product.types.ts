@@ -24,10 +24,8 @@ export interface Product {
   slug: string;
   name: string;
   category: string;
-  subcategory?: string;
   minOrderQuantity: number; // Minimum order quantity for all variants
   description: string;
-  shortDescription?: string;
   images: string[];
   mainImage?: string;
   tags: string[];
@@ -42,8 +40,6 @@ export interface Product {
   isFeatured: boolean;
   isPublished: boolean;
   status: 'draft' | 'in-stock' | 'low-stock' | 'out-of-stock' | 'archived';
-  metaTitle?: string;
-  metaDescription?: string;
   createdAt: Date;
   updatedAt: Date;
 }

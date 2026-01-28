@@ -175,17 +175,9 @@ export async function POST(request: NextRequest) {
     }
     
     // Additional optional fields
-    const subcategory = formData.get('subcategory') as string;
-    const shortDescription = formData.get('shortDescription') as string;
     const weight = formData.get('weight') as string;
-    const metaTitle = formData.get('metaTitle') as string;
-    const metaDescription = formData.get('metaDescription') as string;
     
-    if (subcategory) productData.subcategory = subcategory;
-    if (shortDescription) productData.shortDescription = shortDescription;
     if (weight) productData.weight = parseFloat(weight);
-    if (metaTitle) productData.metaTitle = metaTitle;
-    if (metaDescription) productData.metaDescription = metaDescription;
     
     // Handle dimensions
     const length = formData.get('dimensions.length') as string;
