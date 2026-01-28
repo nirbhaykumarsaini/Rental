@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       }
 
       const itemIndex = wishlist.items.findIndex(
-        (item) => item._id.toString() === wishlistItemId,
+        (item: { _id: { toString: () => any; }; }) => item._id.toString() === wishlistItemId,
       );
 
       if (itemIndex === -1) {
@@ -60,12 +60,11 @@ export async function POST(request: NextRequest) {
       // Prepare cart item data
       let price = 0;
       let color = "";
-      let size = "";
       let image = product.images[0];
 
       if (wishlistItem.variantId && product.variants) {
         const variant = product.variants.find(
-          (v: any) => v._id.toString() === wishlistItem.variantId,
+          (v: { _id: { toString: () => any; }; }) => v._id.toString() === wishlistItem.variantId,
         );
 
         if (variant) {
@@ -98,7 +97,7 @@ export async function POST(request: NextRequest) {
 
       // Check if item already exists in cart
       const existingCartItemIndex = cart.items.findIndex(
-        (item) =>
+        (item: { productId: { toString: () => string; }; variantId: string; }) =>
           item.productId.toString() === wishlistItem.productId.toString() &&
           item.variantId === wishlistItem.variantId,
       );

@@ -238,7 +238,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const itemIndex = wishlist.items.findIndex(item => 
+    const itemIndex = wishlist.items.findIndex((item: { _id: { toString: () => any; }; }) => 
       item._id.toString() === wishlistItemId
     );
 
@@ -299,7 +299,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const initialLength = wishlist.items.length;
-    wishlist.items = wishlist.items.filter(item => 
+    wishlist.items = wishlist.items.filter((item: { _id: { toString: () => any; }; }) => 
       item._id.toString() !== wishlistItemId
     );
     
