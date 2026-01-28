@@ -286,7 +286,7 @@ class CategoryService {
     }
   }
 
-  validateCategoryData(category: Category): { valid: boolean; errors: string[] } {
+validateCategoryData(category: Partial<Category>): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
 
     if (!category.name?.trim()) {

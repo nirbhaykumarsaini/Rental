@@ -9,7 +9,7 @@ import categoryService from '@/app/services/categoryService';
 interface AddCategoryProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (categoryData: Category, imageFile?: File) => void;
+  onSubmit: (categoryData: Partial<Category>, imageFile?: File) => void;
   editingCategory: Category | null;
   parentCategories: Category[];
 }
@@ -145,7 +145,7 @@ export function AddCategory({ isOpen, onClose, onSubmit, editingCategory }: AddC
       return;
     }
 
-    const categoryData: Category = {
+    const categoryData: Partial<Category> = {
       name: formData.name || '',
       category_image: formData.category_image || '',
       slug: formData.slug || '',
