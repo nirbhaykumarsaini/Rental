@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-   env: {
+  env: {
     MONGODB_URI: process.env.MONGODB_URI,
     JWT_SECRET: process.env.JWT_SECRET,
     JWT_ACCESS_EXPIRATION: process.env.JWT_ACCESS_EXPIRATION,
@@ -13,9 +13,9 @@ const nextConfig: NextConfig = {
     CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
     CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
     MUZZTECH_API_KEY: process.env.MUZZTECH_API_KEY,
-    NEXT_PUBLIC_API_URL:process.env.NEXT_PUBLIC_API_URL
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
   },
-  
+
   images: {
     remotePatterns: [
       {
@@ -31,8 +31,8 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  experimental:{
-proxyClientMaxBodySize:'100mb'
+  experimental: {
+    proxyClientMaxBodySize: "50mb",
   },
   output: "standalone",
 };
