@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
 
     // Validate all requested items exist in cart
     const requestedIds = new Set(items);
-    const foundIds = new Set(cartItemsToPurchase.map(item => item._id.toString()));
+    const foundIds = new Set(cartItemsToPurchase.map((item: { _id: { toString: () => any; }; }) => item._id.toString()));
     
     const missingItems = items.filter(id => !foundIds.has(id));
     if (missingItems.length > 0) {
