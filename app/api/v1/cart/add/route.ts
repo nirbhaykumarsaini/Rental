@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
       }
 
       selectedVariant = product.variants.find(
-        (v: any) => v._id.toString() === variantId,
+        (v: { _id: { toString: () => string; }; }) => v._id.toString() === variantId,
       );
       if (!selectedVariant || !selectedVariant.isActive) {
         return NextResponse.json(
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
         }
 
         selectedSize = selectedVariant.sizes.find(
-          (s: any) => s._id.toString() === sizeId,
+          (s: { _id: { toString: () => string; }; }) => s._id.toString() === sizeId,
         );
         if (!selectedSize || !selectedSize.isActive) {
           return NextResponse.json(
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if item already exists in cart
-    const existingItemIndex = cart.items.findIndex((item) => {
+    const existingItemIndex = cart.items.findIndex((item: { productId: { toString: () => string; }; variantId: string; sizeId: string; }) => {
       if (product.hasVariants) {
         return (
           item.productId.toString() === productId &&
