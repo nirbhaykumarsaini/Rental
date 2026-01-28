@@ -2,7 +2,7 @@
 
 
 // app/services/categoryService.ts
-import { Category } from '@/app/types/category.types';
+import { Category, CategoryInput } from '@/app/types/category.types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -286,7 +286,7 @@ class CategoryService {
     }
   }
 
-validateCategoryData(category: Partial<Category>): { valid: boolean; errors: string[] } {
+  validateCategoryData(category: CategoryInput): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
 
     if (!category.name?.trim()) {

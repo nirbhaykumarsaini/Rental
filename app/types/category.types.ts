@@ -6,3 +6,10 @@ export interface Category {
   productCount:string;
   isActive?: boolean;
 }
+
+export interface CategoryInput {
+  name: string;
+  slug: string;
+  category_image?: string;
+  isActive?: boolean;
+}
