@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Filter cart items based on requested items
-    const cartItemsToPurchase = cart.items.filter(item => 
+    const cartItemsToPurchase = cart.items.filter((item: { _id: { toString: () => any; }; }) => 
       items.includes(item._id.toString())
     );
 
@@ -235,7 +235,7 @@ export async function POST(request: NextRequest) {
     const createdOrder = order[0];
 
     // Remove purchased items from cart (keep the rest)
-    const remainingCartItems = cart.items.filter(item => 
+    const remainingCartItems = cart.items.filter((item: { _id: { toString: () => any; }; }) => 
       !items.includes(item._id.toString())
     );
     
