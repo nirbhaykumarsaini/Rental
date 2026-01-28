@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const itemIndex = cart.items.findIndex(item => item._id.toString() === cartItemId);
+    const itemIndex = cart.items.findIndex((item: { _id: { toString: () => string; }; }) => item._id.toString() === cartItemId);
     if (itemIndex === -1) {
       return NextResponse.json(
         { status: false, message: 'Cart item not found' },
