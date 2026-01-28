@@ -456,7 +456,8 @@ console.log(categories)
         size,
         inventory: 0,
         sku: generateSKU(formData.name, '', size),
-        isActive: true
+        isActive: true,
+        _id:''
       }))
     };
 
