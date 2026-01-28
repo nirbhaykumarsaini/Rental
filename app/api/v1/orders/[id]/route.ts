@@ -9,7 +9,7 @@ import Product from "@/app/models/Product";
 // GET - Get single order by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
@@ -51,7 +51,7 @@ export async function GET(
 // PUT - Update order (cancel order for user)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await mongoose.startSession();
   
