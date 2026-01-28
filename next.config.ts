@@ -15,6 +15,7 @@ const nextConfig: NextConfig = {
     MUZZTECH_API_KEY: process.env.MUZZTECH_API_KEY,
     NEXT_PUBLIC_API_URL:process.env.NEXT_PUBLIC_API_URL
   },
+  
   images: {
     remotePatterns: [
       {
@@ -29,6 +30,9 @@ const nextConfig: NextConfig = {
         pathname: "/**",
       },
     ],
+  },
+  experimental:{
+proxyClientMaxBodySize:'100mb'
   },
   output: "standalone",
 };

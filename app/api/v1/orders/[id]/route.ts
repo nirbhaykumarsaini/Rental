@@ -49,22 +49,19 @@ export async function GET(
 }
 
 // PUT - Update order (cancel order for user)
-export async function PUT(
+export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await mongoose.startSession();
   
   try {
-    session.startTransaction();
     await connectDB();
     
     const { userId } = await authenticate(request);
     const { id } = await params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      await session.abortTransaction();
-      session.endSession();
+
       return NextResponse.json(
         { status: false, message: "Invalid order ID format" },
         { status: 400 },
@@ -75,8 +72,7 @@ export async function PUT(
     const { action, reason } = body;
 
     if (action !== 'cancel') {
-      await session.abortTransaction();
-      session.endSession();
+
       return NextResponse.json(
         { status: false, message: "Invalid action" },
         { status: 400 },
@@ -84,10 +80,8 @@ export async function PUT(
     }
 
     // Find order
-    const order = await Order.findOne({ _id: id, userId }).session(session);
+    const order = await Order.findOne({ _id: id, userId });
     if (!order) {
-      await session.abortTransaction();
-      session.endSession();
       return NextResponse.json(
         { status: false, message: "Order not found" },
         { status: 404 },
@@ -102,8 +96,7 @@ export async function PUT(
     ];
 
     if (nonCancellableStatuses.includes(order.orderStatus)) {
-      await session.abortTransaction();
-      session.endSession();
+
       return NextResponse.json(
         { 
           status: false, 
@@ -123,7 +116,7 @@ export async function PUT(
       if (itemsToRestore.length > 0) {
         // Restore inventory for each item
         for (const item of itemsToRestore) {
-          const product = await Product.findById(item.productId).session(session);
+          const product = await Product.findById(item.productId);
           
           if (product) {
             const variant = product.variants.id(item.variantId);
@@ -146,7 +139,7 @@ export async function PUT(
                   product.status = 'in-stock';
                 }
                 
-                await product.save({ session });
+                await product.save();
               }
             }
           }
@@ -168,11 +161,7 @@ export async function PUT(
       order.paymentStatus = PaymentStatus.FAILED;
     }
 
-    await order.save({ session });
-
-    // Commit transaction
-    await session.commitTransaction();
-    session.endSession();
+    await order.save();
 
     return NextResponse.json({
       status: true,
@@ -180,9 +169,6 @@ export async function PUT(
       data: order
     });
   } catch (error: any) {
-    // Rollback transaction on error
-    await session.abortTransaction();
-    session.endSession();
     
     console.error("Error updating order:", error);
     return NextResponse.json(
