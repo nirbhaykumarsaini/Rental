@@ -560,7 +560,7 @@ export function ProductList({
                           <h4 className="text-sm font-medium text-gray-700 mb-3">Color Variants</h4>
                           <div className="space-y-3">
                             {product.variants.map((variant, variantIndex) => (
-                              <div key={variantIndex} className="bg-white border border-gray-200 rounded-lg p-4">
+                              <div key={variant._id || variantIndex} className="bg-white border border-gray-200 rounded-lg p-4">
                                 <div className="flex items-center justify-between mb-3">
                                   <div className="flex items-center space-x-3">
                                     <div 
@@ -614,7 +614,7 @@ export function ProductList({
                                       </thead>
                                       <tbody>
                                         {variant.sizes.map((size, sizeIndex) => (
-                                          <tr key={sizeIndex} className="border-b border-gray-100 last:border-0">
+                                          <tr key={size._id || sizeIndex} className="border-b border-gray-100 last:border-0">
                                             <td className="px-3 py-2">
                                               <div className="flex items-center">
                                                 <Ruler className="w-3 h-3 text-gray-400 mr-2" />

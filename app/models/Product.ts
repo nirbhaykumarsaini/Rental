@@ -77,7 +77,7 @@ const productVariantSizeSchema = new Schema<IProductVariantSize>({
     type: Boolean, 
     default: true 
   }
-}, { _id: false });
+});
 
 // Variant Schema
 const productVariantSchema = new Schema<IProductVariant>({
@@ -109,7 +109,7 @@ const productVariantSchema = new Schema<IProductVariant>({
     type: Boolean, 
     default: true 
   }
-}, { _id: false });
+});
 
 // Main Product Schema
 const productSchema = new Schema<IProductDocument>(
