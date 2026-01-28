@@ -116,7 +116,7 @@ export async function PUT(
     // Restore inventory for all order items
     try {
       // Filter items that have variant and size information
-      const itemsToRestore = order.items.filter(item => 
+      const itemsToRestore = order.items.filter((item: { variantId: any; sizeId: any; }) => 
         item.variantId && item.sizeId
       );
       
