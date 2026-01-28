@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Validate cart items (check if products are still available)
-    const validatedItems = cart.items.map(item => {
+    const validatedItems = cart.items.map((item: { productId: string; variantId: string; sizeId: string; quantity: number; }) => {
       const product = item.productId as any;
       const isProductAvailable = product && 
         product.isPublished && 
@@ -39,13 +39,13 @@ export async function GET(request: NextRequest) {
 
       let isVariantAvailable = true;
       if (item.variantId) {
-        const variant = product.variants?.find((v: any) => v._id.toString() === item.variantId);
+        const variant = product.variants?.find((v: { _id: { toString: () => string; }; }) => v._id.toString() === item.variantId);
         if (!variant || !variant.isActive) {
           isVariantAvailable = false;
         }
         
         if (item.sizeId) {
-          const size = variant?.sizes?.find((s: any) => s._id.toString() === item.sizeId);
+          const size = variant?.sizes?.find((s: { _id: { toString: () => string; }; }) => s._id.toString() === item.sizeId);
           if (!size || !size.isActive || size.inventory < item.quantity) {
             isVariantAvailable = false;
           }
