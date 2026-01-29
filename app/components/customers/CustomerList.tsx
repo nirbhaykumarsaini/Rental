@@ -238,44 +238,6 @@ export function CustomerList({
                   {filteredCustomers.length} of {customers.length} customers
                 </p>
               </div>
-              
-              {selectedCustomers.length > 0 && (
-                <div className="flex items-center space-x-3">
-                  <span className="text-sm text-gray-600">
-                    {selectedCustomers.length} selected
-                  </span>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => handleBulkAction('activate')}
-                      disabled={isBulkActionLoading}
-                      className="px-3 py-1.5 bg-green-50 text-green-700 text-sm font-medium rounded-lg border border-green-200 hover:bg-green-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                    >
-                      {isBulkActionLoading ? (
-                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                      ) : (
-                        <UserCheck className="w-3 h-3 mr-1" />
-                      )}
-                      Activate
-                    </button>
-                    <button
-                      onClick={() => handleBulkAction('deactivate')}
-                      disabled={isBulkActionLoading}
-                      className="px-3 py-1.5 bg-gray-50 text-gray-700 text-sm font-medium rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                    >
-                      <UserMinus className="w-3 h-3 mr-1" />
-                      Deactivate
-                    </button>
-                    <button
-                      onClick={() => handleBulkAction('delete')}
-                      disabled={isBulkActionLoading}
-                      className="px-3 py-1.5 bg-red-50 text-red-700 text-sm font-medium rounded-lg border border-red-200 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                    >
-                      <Trash2 className="w-3 h-3 mr-1" />
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Filter Tabs */}
@@ -340,14 +302,7 @@ export function CustomerList({
         <table className="w-full min-w-[1200px]">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
-                <input
-                  type="checkbox"
-                  checked={selectedCustomers.length === filteredCustomers.length && filteredCustomers.length > 0}
-                  onChange={handleSelectAll}
-                  className="h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-                />
-              </th>
+              
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Customer
               </th>
@@ -372,14 +327,7 @@ export function CustomerList({
                 key={customer.id}
                 className="hover:bg-gray-50 transition-colors"
               >
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <input
-                    type="checkbox"
-                    checked={selectedCustomers.includes(customer.id)}
-                    onChange={() => handleSelectCustomer(customer.id)}
-                    className="h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-                  />
-                </td>
+
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <div className="flex-shrink-0 h-12 w-12">

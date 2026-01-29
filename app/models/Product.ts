@@ -1,7 +1,9 @@
+// D:\B2B\app\models\Product.ts
 import mongoose, { Document, Model, Schema } from 'mongoose';
 
 // Interface for ProductVariantSize
 export interface IProductVariantSize {
+  _id?: mongoose.Types.ObjectId;
   size: string;
   inventory: number;
   sku: string;
@@ -10,6 +12,7 @@ export interface IProductVariantSize {
 
 // Interface for ProductVariant
 export interface IProductVariant {
+  _id?: mongoose.Types.ObjectId;
   color: string;
   colorCode: string;
   images: string[];
@@ -52,6 +55,10 @@ export interface IProductDocument extends IProduct, Document {
 
 // Variant Size Schema
 const productVariantSizeSchema = new Schema<IProductVariantSize>({
+  _id: {
+    type: Schema.Types.ObjectId,
+    auto: true
+  },
   size: { 
     type: String, 
     required: [true, 'Size is required'],
@@ -77,6 +84,10 @@ const productVariantSizeSchema = new Schema<IProductVariantSize>({
 
 // Variant Schema
 const productVariantSchema = new Schema<IProductVariant>({
+  _id: {
+    type: Schema.Types.ObjectId,
+    auto: true
+  },
   color: { 
     type: String, 
     required: [true, 'Color is required'],
@@ -195,10 +206,48 @@ const productSchema = new Schema<IProductDocument>(
   }
 );
 
+// Middleware to clean invalid _id fields before save
+productSchema.pre('save', function() {
+  if (this.variants && this.variants.length > 0) {
+    this.variants.forEach((variant: any) => {
+      if (variant.sizes && variant.sizes.length > 0) {
+        variant.sizes.forEach((size: any) => {
+          // Remove _id if it's empty string or invalid
+          if (size._id === '' || (size._id && !mongoose.Types.ObjectId.isValid(size._id))) {
+            delete size._id;
+          }
+        });
+      }
+    });
+  }
+});
+
+// Middleware for findOneAndUpdate operations
+productSchema.pre('findOneAndUpdate', function() {
+  const update = this.getUpdate() as any;
+  const cleanUpdate = (data: any) => {
+    if (data.variants && Array.isArray(data.variants)) {
+      data.variants.forEach((variant: any) => {
+        if (variant.sizes && Array.isArray(variant.sizes)) {
+          variant.sizes.forEach((size: any) => {
+            if (size._id === '' || (size._id && !mongoose.Types.ObjectId.isValid(size._id))) {
+              delete size._id;
+            }
+          });
+        }
+      });
+    }
+  };
+  
+  if (update.$set) cleanUpdate(update.$set);
+  if (update) cleanUpdate(update);
+  
+});
+
 // Indexes for better query performance
 productSchema.index({ slug: 1 }, { unique: true });
 productSchema.index({ name: 'text', description: 'text', tags: 'text' });
-productSchema.index({ category: 1});
+productSchema.index({ category: 1 });
 productSchema.index({ status: 1, isPublished: 1 });
 productSchema.index({ isFeatured: 1 });
 productSchema.index({ 'variants.sizes.inventory': 1 });
@@ -285,6 +334,6 @@ productSchema.statics.updateInventory = async function(
   return await product.save();
 };
 
-const Product = mongoose.models.Product || mongoose.model<IProductDocument>('Product', productSchema);
+const Product: Model<IProductDocument> = mongoose.models.Product || mongoose.model<IProductDocument>('Product', productSchema);
 
 export default Product;

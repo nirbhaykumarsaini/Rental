@@ -15,13 +15,56 @@ export interface CustomerAddress {
   fullAddress?: string;
 }
 
-export interface OrderHistory {
+export interface OrderItem {
+  productId: string;
+  productName: string;
+  quantity: number;
+  price: number;
+  total: number;
+  image?: string;
+  variantId?: string;
+  sizeId?: string;
+  color?: string;
+  size?: string;
+}
+
+export interface CustomerOrder {
   id: string;
   orderNumber: string;
-  date: Date;
   totalAmount: number;
-  status: "completed" | "pending" | "cancelled" | "refunded";
-  items: number;
+  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled" | "refunded";
+  paymentStatus: "pending" | "paid" | "failed" | "refunded";
+  itemCount: number;
+  orderDate: Date;
+  shippingDate?: Date;
+  deliveryDate?: Date;
+  trackingNumber?: string;
+  items: OrderItem[];
+}
+
+export interface OrderStats {
+  statusDistribution: Array<{
+    _id: string;
+    count: number;
+    totalAmount: number;
+  }>;
+  monthlyTrend: Array<{
+    _id: {
+      year: number;
+      month: number;
+    };
+    monthlySpent: number;
+    orderCount: number;
+  }>;
+}
+
+export interface OrderPagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
 }
 
 export interface CustomerNote {
@@ -47,8 +90,17 @@ export interface Customer {
   totalOrders: number;
   totalSpent: number;
   averageOrderValue: number;
+  pendingOrders: number;
+  completedOrders: number;
+  cancelledOrders: number;
+  orderFrequency?: string;
   addresses: CustomerAddress[];
   defaultAddress?: CustomerAddress | null;
+  orders: {
+    items: CustomerOrder[];
+    pagination: OrderPagination;
+  };
+  stats?: OrderStats;
   notes?: CustomerNote[];
   isProfileComplete?: boolean;
   createdAt?: Date;

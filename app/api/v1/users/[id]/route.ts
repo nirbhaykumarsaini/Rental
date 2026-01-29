@@ -12,12 +12,15 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-// GET - Get single user by ID with detailed statistics and addresses
+// GET - Get single user by ID with detailed statistics, addresses, and orders
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     await connectDB();
 
     const { id } = await params;
+    const searchParams = request.nextUrl.searchParams;
+    const ordersPage = parseInt(searchParams.get('ordersPage') || '1');
+    const ordersLimit = parseInt(searchParams.get('ordersLimit') || '5');
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new APIError("Invalid user ID", 400);
@@ -42,22 +45,108 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         }
       },
       {
-        $group: {
-          _id: null,
-          totalOrders: { $sum: 1 },
-          totalSpent: { $sum: '$totalAmount' },
-          averageOrderValue: { $avg: '$totalAmount' },
-          lastOrderDate: { $max: '$createdAt' }
+        $facet: {
+          // Overall stats
+          overallStats: [
+            {
+              $group: {
+                _id: null,
+                totalOrders: { $sum: 1 },
+                totalSpent: { $sum: '$totalAmount' },
+                averageOrderValue: { $avg: '$totalAmount' },
+                lastOrderDate: { $max: '$createdAt' },
+                pendingOrders: {
+                  $sum: {
+                    $cond: [{ $in: ['$orderStatus', ['pending', 'processing']] }, 1, 0]
+                  }
+                },
+                completedOrders: {
+                  $sum: {
+                    $cond: [{ $eq: ['$orderStatus', 'delivered'] }, 1, 0]
+                  }
+                },
+                cancelledOrders: {
+                  $sum: {
+                    $cond: [{ $eq: ['$orderStatus', 'cancelled'] }, 1, 0]
+                  }
+                }
+              }
+            }
+          ],
+          // Order status distribution
+          statusDistribution: [
+            {
+              $group: {
+                _id: '$orderStatus',
+                count: { $sum: 1 },
+                totalAmount: { $sum: '$totalAmount' }
+              }
+            }
+          ],
+          // Monthly spending trend
+          monthlyTrend: [
+            {
+              $group: {
+                _id: {
+                  year: { $year: '$createdAt' },
+                  month: { $month: '$createdAt' }
+                },
+                monthlySpent: { $sum: '$totalAmount' },
+                orderCount: { $sum: 1 }
+              }
+            },
+            { $sort: { '_id.year': -1, '_id.month': -1 } },
+            { $limit: 6 }
+          ]
         }
       }
     ]);
 
-    const stats = orderStats[0] || {
+    const stats = orderStats[0]?.overallStats[0] || {
       totalOrders: 0,
       totalSpent: 0,
       averageOrderValue: 0,
-      lastOrderDate: null
+      lastOrderDate: null,
+      pendingOrders: 0,
+      completedOrders: 0,
+      cancelledOrders: 0
     };
+
+    // Get user's recent orders with pagination
+    const ordersSkip = (ordersPage - 1) * ordersLimit;
+    const orders = await Order.find({ userId: new mongoose.Types.ObjectId(id) })
+      .sort({ createdAt: -1 })
+      .skip(ordersSkip)
+      .limit(ordersLimit)
+      .lean();
+
+    const totalOrdersCount = stats.totalOrders;
+
+    // Format orders for response
+    const formattedOrders = orders.map((order: any) => ({
+      id: order._id.toString(),
+      orderNumber: order.orderNumber,
+      totalAmount: order.totalAmount,
+      status: order.orderStatus,
+      paymentStatus: order.paymentStatus,
+      itemCount: order.items.reduce((sum: number, item: any) => sum + item.quantity, 0),
+      orderDate: order.createdAt,
+      shippingDate: order.shippingDate,
+      deliveryDate: order.deliveredAt,
+      trackingNumber: order.trackingNumber,
+      items: order.items.map((item: any) => ({
+        productId: item.productId.toString(),
+        productName: item.productName,
+        quantity: item.quantity,
+        price: item.unitPrice,
+        total: item.totalPrice,
+        image: item.image,
+        variantId: item.variantId,
+        sizeId: item.sizeId,
+        color: item.color,
+        size: item.size
+      }))
+    }));
 
     // Determine user status based on activity
     let status = 'active';
@@ -100,6 +189,22 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Get default address
     const defaultAddress = formattedAddresses.find(addr => addr.isDefault);
 
+    // Calculate order frequency
+    const getOrderFrequency = () => {
+      if (stats.totalOrders === 0) return 'No orders';
+      
+      const joinDate = new Date(user.createdAt);
+      const today = new Date();
+      const diffTime = today.getTime() - joinDate.getTime();
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      const daysPerOrder = diffDays / stats.totalOrders;
+      
+      if (daysPerOrder <= 7) return 'Weekly';
+      if (daysPerOrder <= 30) return 'Monthly';
+      if (daysPerOrder <= 90) return 'Quarterly';
+      return 'Infrequent';
+    };
+
     // Format response
     const responseData = {
       id: user._id.toString(),
@@ -115,9 +220,28 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       totalOrders: stats.totalOrders,
       totalSpent: stats.totalSpent,
       averageOrderValue: stats.averageOrderValue,
+      pendingOrders: stats.pendingOrders,
+      completedOrders: stats.completedOrders,
+      cancelledOrders: stats.cancelledOrders,
       isProfileComplete: user.isProfileComplete,
+      orderFrequency: getOrderFrequency(),
       addresses: formattedAddresses,
       defaultAddress: defaultAddress || (formattedAddresses.length > 0 ? formattedAddresses[0] : null),
+      orders: {
+        items: formattedOrders,
+        pagination: {
+          page: ordersPage,
+          limit: ordersLimit,
+          total: totalOrdersCount,
+          totalPages: Math.ceil(totalOrdersCount / ordersLimit),
+          hasNext: ordersPage < Math.ceil(totalOrdersCount / ordersLimit),
+          hasPrev: ordersPage > 1
+        }
+      },
+      stats: {
+        statusDistribution: orderStats[0]?.statusDistribution || [],
+        monthlyTrend: orderStats[0]?.monthlyTrend || []
+      },
       createdAt: user.createdAt,
       updatedAt: user.updatedAt
     };
