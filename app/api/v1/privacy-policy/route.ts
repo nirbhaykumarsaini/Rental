@@ -189,12 +189,12 @@ export async function PUT(request: NextRequest) {
       status: true,
       message: "Privacy policy updated successfully",
       data: {
-        id: updatedPolicy._id,
-        title: updatedPolicy.title,
-        version: updatedPolicy.version,
-        effectiveDate: updatedPolicy.effectiveDate,
-        isActive: updatedPolicy.isActive,
-        updatedAt: updatedPolicy.updatedAt
+        id: updatedPolicy?._id,
+        title: updatedPolicy?.title,
+        version: updatedPolicy?.version,
+        effectiveDate: updatedPolicy?.effectiveDate,
+        isActive: updatedPolicy?.isActive,
+        updatedAt: updatedPolicy?.updatedAt
       }
     }, { status: 200 });
 
