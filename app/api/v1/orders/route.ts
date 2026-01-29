@@ -153,14 +153,15 @@ export async function POST(request: NextRequest) {
             quantity: cartItem.quantity,
           });
         }
-      } else {
-        // For non-variant products, check overall inventory
-        if (product.totalInventory < cartItem.quantity) {
-          throw new Error(
-            `Only ${product.totalInventory} items available for ${cartItem.name}`,
-          );
-        }
-      }
+      } 
+      // else {
+      //   // For non-variant products, check overall inventory
+      //   if (product.totalInventory < cartItem.quantity) {
+      //     throw new Error(
+      //       `Only ${product.totalInventory} items available for ${cartItem.name}`,
+      //     );
+      //   }
+      // }
 
       // Validate minimum order quantity
       if (cartItem.quantity < product.minOrderQuantity) {
