@@ -11,7 +11,7 @@ import { errorHandler } from "@/app/lib/errors/errorHandler";
 // GET - Get single order by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await connectDB();
@@ -26,7 +26,7 @@ export async function GET(
     }
 
     const order = await Order.findOne({ _id: id, userId })
-      .populate('items.productId', 'name slug images')
+      .populate("items.productId", "name slug images")
       .lean();
 
     if (!order) {
@@ -39,7 +39,7 @@ export async function GET(
     return NextResponse.json({
       status: true,
       message: "Order fetched successfully",
-      data: order
+      data: order,
     });
   } catch (error: any) {
     console.error("Error fetching order:", error);
@@ -53,17 +53,15 @@ export async function GET(
 // POST - Update order (cancel order for user)
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  
   try {
     await connectDB();
-    
+
     const { userId } = await authenticate(request);
     const { id } = await params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-
       return NextResponse.json(
         { status: false, message: "Invalid order ID format" },
         { status: 400 },
@@ -73,8 +71,7 @@ export async function POST(
     const body = await request.json();
     const { action, reason } = body;
 
-    if (action !== 'cancel') {
-
+    if (action !== "cancel") {
       return NextResponse.json(
         { status: false, message: "Invalid action" },
         { status: 400 },
@@ -94,15 +91,14 @@ export async function POST(
     const nonCancellableStatuses = [
       OrderStatus.SHIPPED,
       OrderStatus.DELIVERED,
-      OrderStatus.CANCELLED
+      OrderStatus.CANCELLED,
     ];
 
     if (nonCancellableStatuses.includes(order.orderStatus)) {
-
       return NextResponse.json(
-        { 
-          status: false, 
-          message: `Order cannot be cancelled in ${order.orderStatus} status` 
+        {
+          status: false,
+          message: `Order cannot be cancelled in ${order.orderStatus} status`,
         },
         { status: 400 },
       );
@@ -111,36 +107,54 @@ export async function POST(
     // Restore inventory for all order items
     try {
       // Filter items that have variant and size information
-      const itemsToRestore = order.items.filter((item: { variantId: any; sizeId: any; }) => 
-        item.variantId && item.sizeId
+      const itemsToRestore = order.items.filter(
+        (item: { variantId: any; sizeId: any }) =>
+          item.variantId && item.sizeId,
       );
-      
+
       if (itemsToRestore.length > 0) {
         // Restore inventory for each item
         for (const item of itemsToRestore) {
           const product = await Product.findById(item.productId);
-          
+
           if (product) {
-            const variant = product.variants.id(item.variantId);
+            const variantId = new mongoose.Types.ObjectId(item.variantId);
+            const sizeId = new mongoose.Types.ObjectId(item.sizeId);
+
+            const variant = product.variants.find(
+              (v: any) => v._id && v._id.toString() === variantId.toString(),
+            );
             if (variant) {
-              const size = variant.sizes.id(item.sizeId);
+              const size = variant.sizes.find(
+                (s: any) => s._id && s._id.toString() === sizeId.toString(),
+              );
+
               if (size) {
                 // Restore the inventory
                 size.inventory += item.quantity;
-                
+
                 // Update product status based on new inventory
-                const totalInventory = product.variants.reduce((total: number, variant: any) => {
-                  return total + variant.sizes.reduce((sum: number, size: any) => sum + size.inventory, 0);
-                }, 0);
-                
+                const totalInventory = product.variants.reduce(
+                  (total: number, variant: any) => {
+                    return (
+                      total +
+                      variant.sizes.reduce(
+                        (sum: number, size: any) => sum + size.inventory,
+                        0,
+                      )
+                    );
+                  },
+                  0,
+                );
+
                 if (totalInventory === 0) {
-                  product.status = 'out-of-stock';
+                  product.status = "out-of-stock";
                 } else if (totalInventory <= 10) {
-                  product.status = 'low-stock';
+                  product.status = "low-stock";
                 } else {
-                  product.status = 'in-stock';
+                  product.status = "in-stock";
                 }
-                
+
                 await product.save();
               }
             }
@@ -159,7 +173,10 @@ export async function POST(
     }
 
     // Update payment status for COD orders
-    if (order.paymentMethod === 'cod' && order.paymentStatus === PaymentStatus.PENDING) {
+    if (
+      order.paymentMethod === "cod" &&
+      order.paymentStatus === PaymentStatus.PENDING
+    ) {
       order.paymentStatus = PaymentStatus.FAILED;
     }
 
@@ -168,10 +185,9 @@ export async function POST(
     return NextResponse.json({
       status: true,
       message: "Order cancelled successfully",
-      data: order
+      data: order,
     });
   } catch (error: any) {
-    
     console.error("Error updating order:", error);
     return NextResponse.json(
       { status: false, message: error.message || "Failed to update order" },
@@ -181,15 +197,23 @@ export async function POST(
 }
 
 // PUT - Update order status or other details
-export async function PUT(request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }) {
-
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
   try {
     await connectDB();
 
     const { id } = await params;
     const body = await request.json();
-    const { status, trackingNumber, courierName, notes, adminNotes, cancelledReason } = body;
+    const {
+      status,
+      trackingNumber,
+      courierName,
+      notes,
+      adminNotes,
+      cancelledReason,
+    } = body;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new APIError("Invalid order ID", 400);
@@ -210,7 +234,7 @@ export async function PUT(request: NextRequest,
         updates.orderStatus = status;
         updates.cancelledAt = new Date();
         updates.cancelledReason = cancelledReason || "Cancelled by admin";
-        
+
         // If order was paid, refund payment
         if (order.paymentStatus === PaymentStatus.PAID) {
           updates.paymentStatus = PaymentStatus.REFUNDED;
@@ -224,29 +248,29 @@ export async function PUT(request: NextRequest,
       } else {
         updates.orderStatus = status;
       }
-      updateFields.push('status');
+      updateFields.push("status");
     }
 
     // Update tracking info
     if (trackingNumber) {
       updates.trackingNumber = trackingNumber;
-      updateFields.push('trackingNumber');
+      updateFields.push("trackingNumber");
     }
 
     if (courierName) {
       updates.courierName = courierName;
-      updateFields.push('courierName');
+      updateFields.push("courierName");
     }
 
     // Update notes
     if (notes !== undefined) {
       updates.notes = notes;
-      updateFields.push('notes');
+      updateFields.push("notes");
     }
 
     if (adminNotes !== undefined) {
       updates.adminNotes = adminNotes;
-      updateFields.push('adminNotes');
+      updateFields.push("adminNotes");
     }
 
     // Update order
@@ -258,7 +282,7 @@ export async function PUT(request: NextRequest,
     return NextResponse.json(
       {
         status: true,
-        message: `Order ${updateFields.join(', ')} updated successfully`,
+        message: `Order ${updateFields.join(", ")} updated successfully`,
         data: {
           id: order._id.toString(),
           orderNumber: order.orderNumber,
@@ -268,9 +292,9 @@ export async function PUT(request: NextRequest,
           updatedAt: order.updatedAt,
         },
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error: any) {
     return errorHandler(error);
-  } 
+  }
 }
