@@ -14,10 +14,7 @@ export interface IPrivacyPolicy {
   version: string;
   summary?: string;
   effectiveDate: Date;
-  sections?: IPolicySection[];
   isActive: boolean;
-  createdBy?: string;
-  updatedBy?: string;
   deactivatedAt?: Date;
 }
 
@@ -75,18 +72,9 @@ const privacyPolicySchema = new Schema<IPrivacyPolicyDocument>(
       required: [true, "Effective date is required"],
       default: Date.now,
     },
-    sections: [policySectionSchema],
     isActive: {
       type: Boolean,
       default: false,
-    },
-    createdBy: {
-      type: String,
-      default: 'Admin',
-    },
-    updatedBy: {
-      type: String,
-      default: 'Admin',
     },
     deactivatedAt: {
       type: Date,

@@ -77,7 +77,6 @@ export async function POST(request: NextRequest) {
       version, 
       summary,
       effectiveDate,
-      sections 
     } = body;
 
     // Validate required fields
@@ -110,8 +109,6 @@ export async function POST(request: NextRequest) {
       version,
       summary: summary || `Privacy Policy Version ${version}`,
       effectiveDate: effectiveDate || new Date(),
-      sections: sections || [],
-      createdBy: "Admin",
       isActive: true
     });
 
@@ -149,7 +146,6 @@ export async function PUT(request: NextRequest) {
       content, 
       summary,
       effectiveDate,
-      sections 
     } = body;
 
     if (!id) {
@@ -169,7 +165,6 @@ export async function PUT(request: NextRequest) {
 
     // Update policy
     const updates: any = {
-      updatedBy: "Admin",
       updatedAt: new Date()
     };
 
@@ -177,7 +172,6 @@ export async function PUT(request: NextRequest) {
     if (content) updates.content = content;
     if (summary) updates.summary = summary;
     if (effectiveDate) updates.effectiveDate = effectiveDate;
-    if (sections) updates.sections = sections;
 
     const updatedPolicy = await PrivacyPolicy.findByIdAndUpdate(
       id,
