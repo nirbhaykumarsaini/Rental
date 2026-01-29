@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/app/config/db";
-import Product from "@/app/models/Product";
+import Product, { IProductVariantSize } from "@/app/models/Product";
 import { ProductVariantSize } from "@/app/types/product.types";
 
 export async function GET(request: NextRequest) {
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
       }
 
       const productInventory = product.variants.reduce(
-        (variantSum: number, variant: { sizes: ProductVariantSize[] }) => {
+        (variantSum: number, variant: { sizes: IProductVariantSize[] }) => {
           const variantTotal = variant.sizes.reduce(
             (sizeSum: number, size: { inventory: number }) => {
               return sizeSum + (size.inventory || 0);
