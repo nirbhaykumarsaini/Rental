@@ -75,7 +75,6 @@ export function CustomerList({
     switch (status) {
       case 'active': return 'bg-green-100 text-green-800 border-green-200';
       case 'inactive': return 'bg-gray-100 text-gray-800 border-gray-200';
-      case 'blocked': return 'bg-red-100 text-red-800 border-red-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
@@ -84,7 +83,6 @@ export function CustomerList({
     switch (status) {
       case 'active': return <CheckCircle className="w-3 h-3" />;
       case 'inactive': return <Clock className="w-3 h-3" />;
-      case 'blocked': return <UserX className="w-3 h-3" />;
       default: return <Clock className="w-3 h-3" />;
     }
   };
@@ -121,17 +119,6 @@ export function CustomerList({
       await onStatusChange(customerId, status);
     } finally {
       setStatusUpdateId(null);
-    }
-  };
-
-  const handleTierUpdate = async (customerId: string, tier: Customer['tier']) => {
-    if (!onTierChange) return;
-    
-    setTierUpdateId(customerId);
-    try {
-      await onTierChange(customerId, tier);
-    } finally {
-      setTierUpdateId(null);
     }
   };
 
@@ -184,7 +171,6 @@ export function CustomerList({
     { value: 'all', label: 'All Status', count: customers.length },
     { value: 'active', label: 'Active', count: customers.filter(c => c.status === 'active').length },
     { value: 'inactive', label: 'Inactive', count: customers.filter(c => c.status === 'inactive').length },
-    { value: 'blocked', label: 'Blocked', count: customers.filter(c => c.status === 'blocked').length },
   ];
 
   const formatCurrency = (amount: number) => {
