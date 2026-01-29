@@ -12,11 +12,14 @@ import {
   MapPin,
   CreditCard,
   Truck,
+  Calendar,
   Package,
   CheckCircle,
   AlertCircle,
   Copy,
+  ExternalLink,
   User,
+  ShoppingBag,
   Loader2
 } from 'lucide-react';
 import Image from 'next/image';
@@ -25,7 +28,7 @@ interface OrderDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   order: Order | null;
-  onUpdateStatus: (orderId: string, status: string) => void;
+  onUpdateStatus: (orderId: string, status: Order['status']) => void;
 }
 
 export function OrderDetailsModal({ isOpen, onClose, order, onUpdateStatus }: OrderDetailsModalProps) {
@@ -91,7 +94,7 @@ export function OrderDetailsModal({ isOpen, onClose, order, onUpdateStatus }: Or
 
   const statusOptions = getStatusOptions();
 
-  const handleStatusUpdate = async (status: string) => {
+  const handleStatusUpdate = async (status: Order['status']) => {
     if (!orderDetails) return;
 
     setIsUpdating(true);
