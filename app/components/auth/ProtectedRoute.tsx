@@ -12,10 +12,10 @@ interface ProtectedRouteProps {
   requiredPermissions?: string[];
 }
 
-export function ProtectedRoute({ 
-  children, 
-  requiredRole, 
-  requiredPermissions 
+export function ProtectedRoute({
+  children,
+  requiredRole,
+  requiredPermissions
 }: ProtectedRouteProps) {
   const { user, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
@@ -24,24 +24,18 @@ export function ProtectedRoute({
     if (!isLoading && !isAuthenticated) {
       router.push('/login');
     }
-    
+
     if (!isLoading && isAuthenticated && user) {
       // Check role
       if (requiredRole && user.role !== requiredRole) {
         router.push('/unauthorized');
         return;
       }
-      
+
       // Check permissions
       if (requiredPermissions) {
-        const hasPermission = requiredPermissions.every(permission => 
-          user.permissions.includes(permission)
-        );
-        
-        if (!hasPermission) {
-          router.push('/unauthorized');
-          return;
-        }
+        router.push('/unauthorized');
+        return;
       }
     }
   }, [isAuthenticated, isLoading, user, router, requiredRole, requiredPermissions]);
