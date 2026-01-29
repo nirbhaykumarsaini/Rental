@@ -6,6 +6,7 @@ import Product from "@/app/models/Product";
 import Address from "@/app/models/Address";
 import { authenticate } from "@/app/middlewares/authMiddleware";
 import { OrderStatus, PaymentMethod, PaymentStatus } from "@/app/models/Order";
+import User from "@/app/models/User";
 
 // POST - Create new order (Cash on Delivery)
 export async function POST(request: NextRequest) {
@@ -320,52 +321,156 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET - Get all orders for authenticated user
+// GET - Get all orders with filters
 export async function GET(request: NextRequest) {
   try {
     await connectDB();
-    const { userId } = await authenticate(request);
 
-    const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "10");
-    const status = searchParams.get("status");
-    const skip = (page - 1) * limit;
+    const searchParams = request.nextUrl.searchParams;
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const search = searchParams.get('search') || '';
+    const status = searchParams.get('status');
+    const dateFrom = searchParams.get('dateFrom');
+    const dateTo = searchParams.get('dateTo');
+    const minAmount = searchParams.get('minAmount');
+    const maxAmount = searchParams.get('maxAmount');
+    const customerEmail = searchParams.get('customerEmail');
+    const orderNumber = searchParams.get('orderNumber');
+    const sortBy = searchParams.get('sortBy') || 'createdAt';
+    const sortOrder = searchParams.get('sortOrder') || 'desc';
 
-    // Build filter
-    const filter: any = { userId };
-    if (status && Object.values(OrderStatus).includes(status as OrderStatus)) {
+    // Build filter object
+    const filter: any = {};
+
+    // Search across multiple fields
+    if (search) {
+      filter.$or = [
+        { orderNumber: { $regex: search, $options: 'i' } },
+        { 'shippingAddress.first_name': { $regex: search, $options: 'i' } },
+        { 'shippingAddress.last_name': { $regex: search, $options: 'i' } },
+        { 'shippingAddress.phone_number': { $regex: search, $options: 'i' } },
+        { 'shippingAddress.email': { $regex: search, $options: 'i' } },
+        { 'items.productName': { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    // Status filter
+    if (status && status !== 'all') {
       filter.orderStatus = status;
     }
 
-    // Get orders with pagination
+    // Date range filter
+    if (dateFrom || dateTo) {
+      filter.createdAt = {};
+      if (dateFrom) filter.createdAt.$gte = new Date(dateFrom);
+      if (dateTo) filter.createdAt.$lte = new Date(dateTo);
+    }
+
+    // Amount range filter
+    if (minAmount || maxAmount) {
+      filter.totalAmount = {};
+      if (minAmount) filter.totalAmount.$gte = parseFloat(minAmount);
+      if (maxAmount) filter.totalAmount.$lte = parseFloat(maxAmount);
+    }
+
+    // Customer email filter
+    if (customerEmail) {
+      // Assuming customer email is stored in user, you might need to join
+      const users = await User.find({ email: customerEmail });
+      const userIds = users.map((user: { _id: any; }) => user._id);
+      filter.userId = { $in: userIds };
+    }
+
+    // Order number filter
+    if (orderNumber) {
+      filter.orderNumber = { $regex: orderNumber, $options: 'i' };
+    }
+
+    // Calculate skip for pagination
+    const skip = (page - 1) * limit;
+
+    // Build sort object
+    const sort: any = {};
+    sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+    // Get total count
+    const total = await Order.countDocuments(filter);
+
+    // Get orders with pagination and populate user details
     const orders = await Order.find(filter)
-      .sort({ createdAt: -1 })
+      .sort(sort)
       .skip(skip)
       .limit(limit)
+      .populate({
+        path: 'userId',
+        select: 'name email mobile',
+      })
       .lean();
 
-    // Get total count for pagination
-    const totalOrders = await Order.countDocuments(filter);
+    // Format orders for response
+    const formattedOrders = orders.map((order: any) => ({
+      id: order._id.toString(),
+      orderNumber: order.orderNumber,
+      customerName: order.userId?.name || `${order.shippingAddress.first_name} ${order.shippingAddress.last_name}`,
+      customerEmail: order.userId?.email || order.shippingAddress.email || '',
+      customerPhone: order.shippingAddress.phone_number,
+      status: order.orderStatus,
+      totalAmount: order.totalAmount,
+      items: order.items.map((item: any) => ({
+        id: item._id.toString(),
+        productId: item.productId.toString(),
+        productName: item.productName,
+        quantity: item.quantity,
+        price: item.unitPrice,
+        total: item.totalPrice,
+      })),
+      shippingAddress: {
+        street: order.shippingAddress.address,
+        city: order.shippingAddress.city,
+        state: order.shippingAddress.state,
+        zipCode: order.shippingAddress.pin_code,
+        country: order.shippingAddress.country,
+      },
+      billingAddress: order.billingAddress ? {
+        street: order.billingAddress.address,
+        city: order.billingAddress.city,
+        state: order.billingAddress.state,
+        zipCode: order.billingAddress.pin_code,
+        country: order.billingAddress.country,
+      } : undefined,
+      paymentMethod: order.paymentMethod,
+      paymentStatus: order.paymentStatus,
+      orderDate: order.createdAt,
+      shippingDate: order.shippingDate,
+      deliveryDate: order.deliveredAt,
+      trackingNumber: order.trackingNumber,
+      notes: order.notes,
+      createdAt: order.createdAt,
+      updatedAt: order.updatedAt,
+    }));
 
-    return NextResponse.json({
-      status: true,
-      message: "Orders fetched successfully",
-      data: {
-        orders,
-        pagination: {
-          currentPage: page,
-          totalPages: Math.ceil(totalOrders / limit),
-          totalOrders,
-          hasNextPage: page * limit < totalOrders,
-          hasPreviousPage: page > 1,
+    return NextResponse.json(
+      {
+        status: true,
+        message: "Orders fetched successfully",
+        data: {
+          orders: formattedOrders,
+          pagination: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+            hasNext: page < Math.ceil(total / limit),
+            hasPrev: page > 1,
+          },
         },
       },
-    });
+      { status: 200 }
+    );
   } catch (error: any) {
-    console.error("Error fetching orders:", error);
     return NextResponse.json(
-      { status: false, message: error.message || "Failed to fetch orders" },
+      { status: false, message: error.message || "Failed to fetch order" },
       { status: 500 },
     );
   }

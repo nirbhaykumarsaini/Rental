@@ -1,15 +1,18 @@
 // app/components/orders/OrderFilters.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Calendar, Filter, X } from 'lucide-react';
 
 interface OrderFiltersProps {
   isOpen: boolean;
   onClose: () => void;
+  onApply: (filters: any) => void;
+  onReset: () => void;
+  initialFilters?: any;
 }
 
-export function OrderFilters({ isOpen, onClose }: OrderFiltersProps) {
+export function OrderFilters({ isOpen, onClose, onApply, onReset, initialFilters }: OrderFiltersProps) {
   const [filters, setFilters] = useState({
     search: '',
     status: 'all',
@@ -17,8 +20,21 @@ export function OrderFilters({ isOpen, onClose }: OrderFiltersProps) {
     dateTo: '',
     minAmount: '',
     maxAmount: '',
-    paymentMethod: 'all',
   });
+
+  // Initialize filters from props
+  useEffect(() => {
+    if (initialFilters) {
+      setFilters({
+        search: initialFilters.search || '',
+        status: initialFilters.status || 'all',
+        dateFrom: initialFilters.dateFrom || '',
+        dateTo: initialFilters.dateTo || '',
+        minAmount: initialFilters.minAmount || '',
+        maxAmount: initialFilters.maxAmount || '',
+      });
+    }
+  }, [initialFilters]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -26,12 +42,10 @@ export function OrderFilters({ isOpen, onClose }: OrderFiltersProps) {
   };
 
   const handleApplyFilters = () => {
-    console.log('Applying filters:', filters);
-    // Apply filters logic
-    onClose();
+    onApply(filters);
   };
 
-  const handleResetFilters = () => {
+  const handleReset = () => {
     setFilters({
       search: '',
       status: 'all',
@@ -39,8 +53,8 @@ export function OrderFilters({ isOpen, onClose }: OrderFiltersProps) {
       dateTo: '',
       minAmount: '',
       maxAmount: '',
-      paymentMethod: 'all',
     });
+    onReset();
   };
 
   if (!isOpen) return null;
@@ -144,13 +158,15 @@ export function OrderFilters({ isOpen, onClose }: OrderFiltersProps) {
             Min Amount
           </label>
           <div className="relative">
-            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span>
             <input
               type="number"
               name="minAmount"
               value={filters.minAmount}
               onChange={handleInputChange}
               placeholder="0.00"
+              min="0"
+              step="0.01"
               className="w-full pl-8 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
@@ -161,35 +177,18 @@ export function OrderFilters({ isOpen, onClose }: OrderFiltersProps) {
             Max Amount
           </label>
           <div className="relative">
-            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span>
             <input
               type="number"
               name="maxAmount"
               value={filters.maxAmount}
               onChange={handleInputChange}
-              placeholder="1000.00"
+              placeholder="100000.00"
+              min="0"
+              step="0.01"
               className="w-full pl-8 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
-        </div>
-
-        {/* Payment Method */}
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Payment Method
-          </label>
-          <select
-            name="paymentMethod"
-            value={filters.paymentMethod}
-            onChange={handleInputChange}
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="all">All Methods</option>
-            <option value="credit-card">Credit Card</option>
-            <option value="paypal">PayPal</option>
-            <option value="bank-transfer">Bank Transfer</option>
-            <option value="cash-on-delivery">Cash on Delivery</option>
-          </select>
         </div>
       </div>
 
@@ -197,7 +196,7 @@ export function OrderFilters({ isOpen, onClose }: OrderFiltersProps) {
       <div className="flex justify-end space-x-3 pt-6 mt-6 border-t border-gray-200">
         <button
           type="button"
-          onClick={handleResetFilters}
+          onClick={handleReset}
           className="px-6 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
         >
           Reset Filters

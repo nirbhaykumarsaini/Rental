@@ -1,13 +1,18 @@
 // app/types/customer.types.ts
 export interface CustomerAddress {
   id: string;
-  type: "shipping" | "billing" | "both";
+  type: "home" | "work" | "other";
   street: string;
   city: string;
   state: string;
   zipCode: string;
   country: string;
   isDefault: boolean;
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
+  fullName?: string;
+  fullAddress?: string;
 }
 
 export interface OrderHistory {
@@ -33,7 +38,7 @@ export interface Customer {
   firstName: string;
   lastName: string;
   email: string;
-  phone?: string;
+  mobile?: string;
   avatar?: string;
   status: "active" | "inactive" | "blocked";
   tier: "regular" | "premium" | "vip";
@@ -41,12 +46,34 @@ export interface Customer {
   lastOrderDate?: Date;
   totalOrders: number;
   totalSpent: number;
+  averageOrderValue: number;
   addresses: CustomerAddress[];
+  defaultAddress?: CustomerAddress | null;
   notes?: CustomerNote[];
-  preferences?: {
-    newsletter: boolean;
-    marketing: boolean;
-    smsNotifications: boolean;
-  };
+  isProfileComplete?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
   tags?: string[];
+}
+
+export interface CustomerFilters {
+  search?: string;
+  status?: "active" | "inactive" | "blocked" | "all";
+  tier?: "regular" | "premium" | "vip" | "all";
+  dateFrom?: string;
+  dateTo?: string;
+  minOrders?: number;
+  maxOrders?: number;
+  minSpent?: number;
+  maxSpent?: number;
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+}
+
+export interface CustomerResponse {
+  status: boolean;
+  message: string;
+  data: Customer;
 }

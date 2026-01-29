@@ -5,6 +5,8 @@ import { authenticate } from "@/app/middlewares/authMiddleware";
 import mongoose from "mongoose";
 import { OrderStatus, PaymentStatus } from "@/app/models/Order";
 import Product from "@/app/models/Product";
+import APIError from "@/app/lib/errors/APIError";
+import { errorHandler } from "@/app/lib/errors/errorHandler";
 
 // GET - Get single order by ID
 export async function GET(
@@ -48,7 +50,7 @@ export async function GET(
   }
 }
 
-// PUT - Update order (cancel order for user)
+// POST - Update order (cancel order for user)
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -176,4 +178,99 @@ export async function POST(
       { status: 500 },
     );
   }
+}
+
+// PUT - Update order status or other details
+export async function PUT(request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }) {
+
+  try {
+    await connectDB();
+
+    const { id } = await params;
+    const body = await request.json();
+    const { status, trackingNumber, courierName, notes, adminNotes, cancelledReason } = body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new APIError("Invalid order ID", 400);
+    }
+
+    const order = await Order.findById(id);
+    if (!order) {
+      throw new APIError("Order not found", 404);
+    }
+
+    const updates: any = {};
+    const updateFields: string[] = [];
+
+    // Update status if provided
+    if (status && Object.values(OrderStatus).includes(status as OrderStatus)) {
+      if (status === OrderStatus.CANCELLED) {
+        // Handle cancellation
+        updates.orderStatus = status;
+        updates.cancelledAt = new Date();
+        updates.cancelledReason = cancelledReason || "Cancelled by admin";
+        
+        // If order was paid, refund payment
+        if (order.paymentStatus === PaymentStatus.PAID) {
+          updates.paymentStatus = PaymentStatus.REFUNDED;
+        }
+      } else if (status === OrderStatus.SHIPPED) {
+        updates.orderStatus = status;
+        updates.shippingDate = new Date();
+      } else if (status === OrderStatus.DELIVERED) {
+        updates.orderStatus = status;
+        updates.deliveredAt = new Date();
+      } else {
+        updates.orderStatus = status;
+      }
+      updateFields.push('status');
+    }
+
+    // Update tracking info
+    if (trackingNumber) {
+      updates.trackingNumber = trackingNumber;
+      updateFields.push('trackingNumber');
+    }
+
+    if (courierName) {
+      updates.courierName = courierName;
+      updateFields.push('courierName');
+    }
+
+    // Update notes
+    if (notes !== undefined) {
+      updates.notes = notes;
+      updateFields.push('notes');
+    }
+
+    if (adminNotes !== undefined) {
+      updates.adminNotes = adminNotes;
+      updateFields.push('adminNotes');
+    }
+
+    // Update order
+    if (updateFields.length > 0) {
+      Object.assign(order, updates);
+      await order.save();
+    }
+
+    return NextResponse.json(
+      {
+        status: true,
+        message: `Order ${updateFields.join(', ')} updated successfully`,
+        data: {
+          id: order._id.toString(),
+          orderNumber: order.orderNumber,
+          status: order.orderStatus,
+          paymentStatus: order.paymentStatus,
+          trackingNumber: order.trackingNumber,
+          updatedAt: order.updatedAt,
+        },
+      },
+      { status: 200 }
+    );
+  } catch (error: any) {
+    return errorHandler(error);
+  } 
 }

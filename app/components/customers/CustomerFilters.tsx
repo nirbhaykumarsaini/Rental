@@ -1,15 +1,18 @@
 // app/components/customers/CustomerFilters.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Calendar, Filter, X, Tag } from 'lucide-react';
 
 interface CustomerFiltersProps {
   isOpen: boolean;
   onClose: () => void;
+  onApply: (filters: any) => void;
+  onReset: () => void;
+  initialFilters?: any;
 }
 
-export function CustomerFilters({ isOpen, onClose }: CustomerFiltersProps) {
+export function CustomerFilters({ isOpen, onClose, onApply, onReset, initialFilters }: CustomerFiltersProps) {
   const [filters, setFilters] = useState({
     search: '',
     tier: 'all',
@@ -33,6 +36,24 @@ export function CustomerFilters({ isOpen, onClose }: CustomerFiltersProps) {
     'abandoned-cart',
   ];
 
+  // Initialize filters from props
+  useEffect(() => {
+    if (initialFilters) {
+      setFilters({
+        search: initialFilters.search || '',
+        status: initialFilters.status || 'all',
+        tier: initialFilters.tier || 'all',
+        joinDateFrom: initialFilters.joinDateFrom || '',
+        joinDateTo: initialFilters.joinDateTo || '',
+        minOrders: initialFilters.minOrders || '',
+        maxOrders: initialFilters.maxOrders || '',
+        minSpent: initialFilters.minSpent || '',
+        maxSpent: initialFilters.maxSpent || '',
+        tags: initialFilters.tags || [],
+      });
+    }
+  }, [initialFilters]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFilters(prev => ({ ...prev, [name]: value }));
@@ -48,12 +69,10 @@ export function CustomerFilters({ isOpen, onClose }: CustomerFiltersProps) {
   };
 
   const handleApplyFilters = () => {
-    console.log('Applying filters:', filters);
-    // Apply filters logic
-    onClose();
+    onApply(filters);
   };
 
-  const handleResetFilters = () => {
+  const handleReset = () => {
     setFilters({
       search: '',
       tier: 'all',
@@ -66,6 +85,7 @@ export function CustomerFilters({ isOpen, onClose }: CustomerFiltersProps) {
       maxSpent: '',
       tags: [],
     });
+    onReset();
   };
 
   if (!isOpen) return null;
@@ -189,6 +209,7 @@ export function CustomerFilters({ isOpen, onClose }: CustomerFiltersProps) {
             value={filters.minOrders}
             onChange={handleInputChange}
             placeholder="0"
+            min="0"
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
           />
         </div>
@@ -203,6 +224,7 @@ export function CustomerFilters({ isOpen, onClose }: CustomerFiltersProps) {
             value={filters.maxOrders}
             onChange={handleInputChange}
             placeholder="100"
+            min="0"
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
           />
         </div>
@@ -213,13 +235,15 @@ export function CustomerFilters({ isOpen, onClose }: CustomerFiltersProps) {
             Min Spent
           </label>
           <div className="relative">
-            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span>
             <input
               type="number"
               name="minSpent"
               value={filters.minSpent}
               onChange={handleInputChange}
               placeholder="0.00"
+              min="0"
+              step="0.01"
               className="w-full pl-8 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             />
           </div>
@@ -230,13 +254,15 @@ export function CustomerFilters({ isOpen, onClose }: CustomerFiltersProps) {
             Max Spent
           </label>
           <div className="relative">
-            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span>
             <input
               type="number"
               name="maxSpent"
               value={filters.maxSpent}
               onChange={handleInputChange}
-              placeholder="10000.00"
+              placeholder="1000000.00"
+              min="0"
+              step="0.01"
               className="w-full pl-8 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             />
           </div>
@@ -274,7 +300,7 @@ export function CustomerFilters({ isOpen, onClose }: CustomerFiltersProps) {
       <div className="flex justify-end space-x-3 pt-6 mt-6 border-t border-gray-200">
         <button
           type="button"
-          onClick={handleResetFilters}
+          onClick={handleReset}
           className="px-6 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
         >
           Reset Filters
