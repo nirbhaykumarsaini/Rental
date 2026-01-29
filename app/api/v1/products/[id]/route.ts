@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/app/config/db';
-import Product, { IProductVariantSize } from '@/app/models/Product';
+import Product, { IProductVariant, IProductVariantSize } from '@/app/models/Product';
 import { 
   extractPublicIdsFromProduct, 
   deleteMultipleFromCloudinary,
@@ -196,7 +196,7 @@ export async function PUT(
    // Update status based on inventory if has variants
 if (product.hasVariants && product.variants.length > 0) {
   // Cast variants to proper type and add type checking
-  const totalInventory = (product.variants as ProductVariant[]).reduce((total: number, variant: ProductVariant) => {
+  const totalInventory = (product.variants as IProductVariant[]).reduce((total: number, variant: IProductVariant) => {
     // Ensure sizes exists and is an array
     const sizes = variant.sizes || [];
     
