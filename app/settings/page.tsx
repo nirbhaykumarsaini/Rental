@@ -1,25 +1,29 @@
-// app/settings/page.tsx (fixed)
+// app/settings/page.tsx (updated with API integration)
 'use client';
 
 import { useState, useEffect } from 'react';
 import {
   Shield,
-  Bell,
-  CreditCard,
-  Lock,
-  Key,
-  Smartphone,
-  Globe,
-  Mail,
   Eye,
   EyeOff,
+  Loader2,
   CheckCircle,
   XCircle,
-  Loader2,
-  LogOut,
-  AlertTriangle
+  Key
 } from 'lucide-react';
-import { SecuritySettings, NotificationPreferences, BillingInfo } from '../types/profile.types';
+import { toast } from 'react-hot-toast';
+
+interface PasswordForm {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+interface ValidationErrors {
+  currentPassword?: string;
+  newPassword?: string;
+  confirmPassword?: string;
+}
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('password');
@@ -27,90 +31,10 @@ export default function SettingsPage() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isClient, setIsClient] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+  const [passwordStrength, setPasswordStrength] = useState(0);
 
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  // Security Settings
-  const [securityData, setSecurityData] = useState<SecuritySettings>({
-    twoFactorEnabled: false,
-    loginNotifications: true,
-    passwordLastChanged: new Date('2024-01-01'),
-    activeSessions: [
-      {
-        id: '1',
-        device: 'MacBook Pro',
-        browser: 'Chrome 120',
-        location: 'New York, USA',
-        ip: '192.168.1.100',
-        lastActive: new Date('2024-01-23T14:30:00'),
-        isCurrent: true,
-      },
-      {
-        id: '2',
-        device: 'iPhone 14',
-        browser: 'Safari 17',
-        location: 'New York, USA',
-        ip: '192.168.1.101',
-        lastActive: new Date('2024-01-22T10:15:00'),
-        isCurrent: false,
-      },
-      {
-        id: '3',
-        device: 'Windows PC',
-        browser: 'Firefox 121',
-        location: 'Chicago, USA',
-        ip: '192.168.1.200',
-        lastActive: new Date('2024-01-20T09:45:00'),
-        isCurrent: false,
-      },
-    ],
-  });
-
-  // Notification Preferences
-  const [notificationData, setNotificationData] = useState<NotificationPreferences>({
-    email: {
-      orders: true,
-      products: true,
-      customers: true,
-      marketing: false,
-      security: true,
-    },
-    push: {
-      orders: true,
-      products: false,
-      customers: true,
-    },
-    sms: {
-      orders: false,
-      security: true,
-    },
-  });
-
-  // Billing Info
-  const [billingData, setBillingData] = useState<BillingInfo>({
-    plan: 'pro',
-    status: 'active',
-    nextBillingDate: new Date('2024-02-01'),
-    paymentMethod: {
-      type: 'card',
-      lastFour: '4242',
-      expiryDate: '12/25',
-      cardBrand: 'visa',
-    },
-    billingAddress: {
-      street: '123 Business Ave',
-      city: 'New York',
-      state: 'NY',
-      zipCode: '10001',
-      country: 'USA',
-    },
-  });
-
-  // Password Change Form
-  const [passwordForm, setPasswordForm] = useState({
+  const [passwordForm, setPasswordForm] = useState<PasswordForm>({
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
@@ -118,16 +42,95 @@ export default function SettingsPage() {
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setPasswordForm(prev => ({ ...prev, [name]: value }));
+    setPasswordForm(prev => ({ 
+      ...prev, 
+      [name]: value 
+    }));
+
+    // Clear validation error for this field
+    if (validationErrors[name as keyof ValidationErrors]) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [name]: undefined
+      }));
+    }
+
+    // Check password strength for new password
+    if (name === 'newPassword') {
+      calculatePasswordStrength(value);
+    }
+  };
+
+  const calculatePasswordStrength = (password: string) => {
+    let strength = 0;
+    
+    // Length check
+    if (password.length >= 8) strength += 25;
+    
+    // Contains numbers
+    if (/\d/.test(password)) strength += 25;
+    
+    // Contains lowercase
+    if (/[a-z]/.test(password)) strength += 25;
+    
+    // Contains uppercase
+    if (/[A-Z]/.test(password)) strength += 25;
+    
+    setPasswordStrength(strength);
+  };
+
+  const validateForm = (): boolean => {
+    const errors: ValidationErrors = {};
+
+    if (!passwordForm.currentPassword.trim()) {
+      errors.currentPassword = 'Current password is required';
+    }
+
+    if (!passwordForm.newPassword.trim()) {
+      errors.newPassword = 'New password is required';
+    } else if (passwordForm.newPassword.length < 6) {
+      errors.newPassword = 'Password must be at least 6 characters';
+    }
+
+    if (!passwordForm.confirmPassword.trim()) {
+      errors.confirmPassword = 'Please confirm your new password';
+    } else if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      errors.confirmPassword = 'Passwords do not match';
+    }
+
+    if (passwordForm.currentPassword === passwordForm.newPassword && passwordForm.newPassword) {
+      errors.newPassword = 'New password must be different from current password';
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      toast.error('Please fix the errors in the form');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const response = await fetch('/api/v1/admin/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        body: JSON.stringify(passwordForm)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to change password');
+      }
 
       // Reset form
       setPasswordForm({
@@ -135,23 +138,29 @@ export default function SettingsPage() {
         newPassword: '',
         confirmPassword: '',
       });
+      setValidationErrors({});
+      setPasswordStrength(0);
 
-      alert('Password updated successfully!');
-    } catch (error) {
-      alert('Failed to update password');
+      toast.success(data.message || 'Password changed successfully!');
+      
+    } catch (error: any) {
+      console.error('Password change error:', error);
+      toast.error(error.message || 'Failed to change password. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleNotificationToggle = (category: keyof NotificationPreferences, key: string) => {
-    setNotificationData(prev => ({
-      ...prev,
-      [category]: {
-        ...prev[category],
-        [key]: !prev[category][key as keyof typeof prev[typeof category]],
-      },
-    }));
+  const getPasswordStrengthColor = () => {
+    if (passwordStrength < 50) return 'bg-red-500';
+    if (passwordStrength < 75) return 'bg-yellow-500';
+    return 'bg-green-500';
+  };
+
+  const getPasswordStrengthText = () => {
+    if (passwordStrength < 50) return 'Weak';
+    if (passwordStrength < 75) return 'Moderate';
+    return 'Strong';
   };
 
   return (
@@ -178,24 +187,14 @@ export default function SettingsPage() {
             <nav className="space-y-1">
               <button
                 onClick={() => setActiveTab('password')}
-                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'security'
-                  ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                  : 'text-gray-700 hover:bg-gray-50'
-                  }`}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === 'password'
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
               >
-                <Lock className="w-4 h-4" />
+                <Key className="w-4 h-4" />
                 <span>Change Password</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('notifications')}
-                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'notifications'
-                  ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                  : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-              >
-                <Bell className="w-4 h-4" />
-                <span>Notifications</span>
               </button>
             </nav>
           </div>
@@ -203,38 +202,47 @@ export default function SettingsPage() {
 
         {/* Right Column - Settings Content */}
         <div className="lg:col-span-3 space-y-8">
-          {/* Security Tab */}
+          {/* Password Change Tab */}
           {activeTab === 'password' && (
             <div className="space-y-8">
               {/* Change Password */}
               <div className="bg-white rounded-xl shadow border border-gray-200 p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-6">Change Password</h2>
-                <form onSubmit={handlePasswordSubmit} className="space-y-4">
-                  
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <form onSubmit={handlePasswordSubmit} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Current Password */}
                     <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Current Password
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showCurrentPassword ? "text" : "password"}
-                        name="currentPassword"
-                        value={passwordForm.currentPassword}
-                        onChange={handlePasswordChange}
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                      >
-                        {showCurrentPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                      </button>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Current Password
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showCurrentPassword ? "text" : "password"}
+                          name="currentPassword"
+                          value={passwordForm.currentPassword}
+                          onChange={handlePasswordChange}
+                          className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                            validationErrors.currentPassword ? 'border-red-300' : 'border-gray-300'
+                          }`}
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        >
+                          {showCurrentPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        </button>
+                      </div>
+                      {validationErrors.currentPassword && (
+                        <p className="mt-1 text-sm text-red-600 flex items-center">
+                          <XCircle className="w-4 h-4 mr-1" />
+                          {validationErrors.currentPassword}
+                        </p>
+                      )}
                     </div>
-                  </div>
+
+                    {/* New Password */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         New Password
@@ -245,7 +253,9 @@ export default function SettingsPage() {
                           name="newPassword"
                           value={passwordForm.newPassword}
                           onChange={handlePasswordChange}
-                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                            validationErrors.newPassword ? 'border-red-300' : 'border-gray-300'
+                          }`}
                           required
                         />
                         <button
@@ -256,8 +266,15 @@ export default function SettingsPage() {
                           {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                         </button>
                       </div>
+                      {validationErrors.newPassword && (
+                        <p className="mt-1 text-sm text-red-600 flex items-center">
+                          <XCircle className="w-4 h-4 mr-1" />
+                          {validationErrors.newPassword}
+                        </p>
+                      )}
                     </div>
 
+                    {/* Confirm Password */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Confirm New Password
@@ -268,7 +285,9 @@ export default function SettingsPage() {
                           name="confirmPassword"
                           value={passwordForm.confirmPassword}
                           onChange={handlePasswordChange}
-                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                            validationErrors.confirmPassword ? 'border-red-300' : 'border-gray-300'
+                          }`}
                           required
                         />
                         <button
@@ -279,163 +298,66 @@ export default function SettingsPage() {
                           {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                         </button>
                       </div>
+                      {validationErrors.confirmPassword && (
+                        <p className="mt-1 text-sm text-red-600 flex items-center">
+                          <XCircle className="w-4 h-4 mr-1" />
+                          {validationErrors.confirmPassword}
+                        </p>
+                      )}
                     </div>
                   </div>
 
-                  <div className="pt-4">
+                  {/* Password Strength Indicator */}
+                  {passwordForm.newPassword && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-700">Password Strength</span>
+                        <span className={`text-sm font-medium ${
+                          passwordStrength < 50 ? 'text-red-600' :
+                          passwordStrength < 75 ? 'text-yellow-600' : 'text-green-600'
+                        }`}>
+                          {getPasswordStrengthText()}
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full ${getPasswordStrengthColor()}`}
+                          style={{ width: `${passwordStrength}%` }}
+                        ></div>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        {passwordForm.newPassword.length < 6 ? 
+                          'Password must be at least 6 characters' :
+                          'Include uppercase, lowercase, and numbers for a stronger password'
+                        }
+                      </p>
+                    </div>
+                  )}                  
+
+                  {/* Submit Button */}
+                  <div className="pt-4 border-t border-gray-200">
                     <button
                       type="submit"
                       disabled={isLoading}
-                      className="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 flex items-center space-x-2 disabled:opacity-50"
+                      className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
                     >
                       {isLoading ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Updating...</span>
+                        </>
                       ) : (
-                        <Key className="w-4 h-4" />
+                        <>
+                          <Key className="w-4 h-4" />
+                          <span>Update Password</span>
+                        </>
                       )}
-                      <span>Update Password</span>
                     </button>
                   </div>
                 </form>
               </div>
-
             </div>
           )}
-
-          {/* Notifications Tab */}
-          {activeTab === 'notifications' && (
-            <div className="space-y-8">
-              {/* Email Notifications */}
-              <div className="bg-white rounded-xl shadow border border-gray-200 p-6">
-                <div className="flex items-center space-x-3 mb-6">
-                  <Mail className="w-5 h-5 text-gray-400" />
-                  <h2 className="text-lg font-semibold text-gray-900">Email Notifications</h2>
-                </div>
-
-                <div className="space-y-4">
-                  {Object.entries(notificationData.email).map(([key, value]) => (
-                    <div key={key} className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium text-gray-900">
-                          {key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
-                        </h4>
-                        <p className="text-sm text-gray-500 mt-1">
-                          Receive email notifications for {key.toLowerCase()} activities
-                        </p>
-                      </div>
-                      <div className="relative inline-block w-12 h-6">
-                        <input
-                          type="checkbox"
-                          checked={value}
-                          onChange={() => handleNotificationToggle('email', key)}
-                          className="opacity-0 w-0 h-0"
-                        />
-                        <span className={`absolute cursor-pointer top-0 left-0 right-0 bottom-0 rounded-full transition-colors ${value ? 'bg-green-500' : 'bg-gray-300'
-                          } before:absolute before:content-[''] before:h-4 before:w-4 before:left-1 before:bottom-1 before:bg-white before:rounded-full before:transition-transform ${value ? 'before:translate-x-6' : ''
-                          }`}></span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Push Notifications */}
-              <div className="bg-white rounded-xl shadow border border-gray-200 p-6">
-                <div className="flex items-center space-x-3 mb-6">
-                  <Bell className="w-5 h-5 text-gray-400" />
-                  <h2 className="text-lg font-semibold text-gray-900">Push Notifications</h2>
-                </div>
-
-                <div className="space-y-4">
-                  {Object.entries(notificationData.push).map(([key, value]) => (
-                    <div key={key} className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium text-gray-900">
-                          {key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
-                        </h4>
-                        <p className="text-sm text-gray-500 mt-1">
-                          Receive push notifications for {key.toLowerCase()} activities
-                        </p>
-                      </div>
-                      <div className="relative inline-block w-12 h-6">
-                        <input
-                          type="checkbox"
-                          checked={value}
-                          onChange={() => handleNotificationToggle('push', key)}
-                          className="opacity-0 w-0 h-0"
-                        />
-                        <span className={`absolute cursor-pointer top-0 left-0 right-0 bottom-0 rounded-full transition-colors ${value ? 'bg-green-500' : 'bg-gray-300'
-                          } before:absolute before:content-[''] before:h-4 before:w-4 before:left-1 before:bottom-1 before:bg-white before:rounded-full before:transition-transform ${value ? 'before:translate-x-6' : ''
-                          }`}></span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* SMS Notifications */}
-              <div className="bg-white rounded-xl shadow border border-gray-200 p-6">
-                <div className="flex items-center space-x-3 mb-6">
-                  <Smartphone className="w-5 h-5 text-gray-400" />
-                  <h2 className="text-lg font-semibold text-gray-900">SMS Notifications</h2>
-                </div>
-
-                <div className="space-y-4">
-                  {Object.entries(notificationData.sms).map(([key, value]) => (
-                    <div key={key} className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium text-gray-900">
-                          {key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
-                        </h4>
-                        <p className="text-sm text-gray-500 mt-1">
-                          Receive SMS notifications for {key.toLowerCase()} activities
-                        </p>
-                      </div>
-                      <div className="relative inline-block w-12 h-6">
-                        <input
-                          type="checkbox"
-                          checked={value}
-                          onChange={() => handleNotificationToggle('sms', key)}
-                          className="opacity-0 w-0 h-0"
-                        />
-                        <span className={`absolute cursor-pointer top-0 left-0 right-0 bottom-0 rounded-full transition-colors ${value ? 'bg-green-500' : 'bg-gray-300'
-                          } before:absolute before:content-[''] before:h-4 before:w-4 before:left-1 before:bottom-1 before:bg-white before:rounded-full before:transition-transform ${value ? 'before:translate-x-6' : ''
-                          }`}></span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl shadow border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">Login Notifications</h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  Receive email notifications for new logins
-                </p>
-              </div>
-              <div className="relative inline-block w-12 h-6">
-                <input
-                  type="checkbox"
-                  checked={securityData.loginNotifications}
-                  onChange={() => setSecurityData(prev => ({
-                    ...prev,
-                    loginNotifications: !prev.loginNotifications
-                  }))}
-                  className="opacity-0 w-0 h-0"
-                />
-                <span className={`absolute cursor-pointer top-0 left-0 right-0 bottom-0 rounded-full transition-colors ${securityData.loginNotifications ? 'bg-green-500' : 'bg-gray-300'
-                  } before:absolute before:content-[''] before:h-4 before:w-4 before:left-1 before:bottom-1 before:bg-white before:rounded-full before:transition-transform ${securityData.loginNotifications ? 'before:translate-x-6' : ''
-                  }`}></span>
-              </div>
-            </div>
-          </div>
-            </div>
-          )}
-
-          
-
         </div>
       </div>
     </div>

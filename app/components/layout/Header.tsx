@@ -17,6 +17,8 @@ export default function Header() {
   const { toggleSidebar } = useSidebar();
   const { user, logout } = useAuth();
 
+  console.log('User Info:', user);
+
   const handleLogout = () => {
     if (confirm('Are you sure you want to logout?')) {
       logout();
@@ -52,13 +54,10 @@ export default function Header() {
         <div className="flex items-center space-x-3 group relative">
           <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
             <span className="text-white text-sm font-medium">
-              {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
+              {user?.role?.charAt(0)}
             </span>
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-900">
-              {user?.firstName} {user?.lastName}
-            </p>
             <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
           </div>
           <ChevronDown className="w-4 h-4 text-gray-500 cursor-pointer" />
@@ -66,7 +65,7 @@ export default function Header() {
           {/* Dropdown Menu */}
           <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
             <div className="px-4 py-3 border-b border-gray-100">
-              <p className="text-sm font-medium text-gray-900">{user?.firstName} {user?.lastName}</p>
+              <p className="text-sm font-medium text-gray-900 capitalize">{user?.role}</p>
               <p className="text-xs text-gray-500 truncate">{user?.email}</p>
             </div>
             

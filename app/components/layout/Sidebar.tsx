@@ -1,22 +1,12 @@
 'use client';
 
 import {
-  LayoutDashboard,
   Package,
-  Heart,
   Inbox,
   ListOrdered,
   Package2,
-  Calendar,
-  CheckSquare,
-  Users,
-  Table,
-  FileText,
   Settings,
   LogOut,
-  CreditCard,
-  MessageSquare,
-  Plus,
   User
 } from 'lucide-react';
 import Link from 'next/link';

@@ -31,16 +31,20 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     const publicRoutes = ['/login', '/register', '/forgot-password', '/reset-password', '/unauthorized'];
     const isPublicRoute = publicRoutes.includes(pathname);
 
-    console.log('Auth check:', { isAuthenticated, pathname, isPublicRoute });
+    if (isLoading) return;
 
     if (!isAuthenticated && !isPublicRoute) {
       // Not logged in and trying to access protected route
-      console.log('Redirecting to login');
+      console.log('Redirecting to login - not authenticated');
       router.push('/login');
-    } else if (isAuthenticated && isPublicRoute && pathname !== '/unauthorized') {
+      return;
+    }
+
+    if (isAuthenticated && isPublicRoute && pathname !== '/unauthorized') {
       // Logged in and trying to access auth page
-      console.log('Redirecting to dashboard');
+      console.log('Redirecting to dashboard - already authenticated');
       router.push('/');
+      return;
     }
     
     setIsCheckingAuth(false);
@@ -67,18 +71,17 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     return <>{children}</>;
   }
 
-  // Protected routes - render dashboard layout only if authenticated
-  // if (!isAuthenticated) {
-  //   // This shouldn't happen due to redirect, but as a fallback
-  //   return (
-  //     <div className="min-h-screen flex items-center justify-center bg-gray-50">
-  //       <div className="text-center">
-  //         <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-  //         <p className="text-gray-600">Redirecting to login...</p>
-  //       </div>
-  //     </div>
-  //   );
-  // }
+  // If not authenticated (should have redirected by now)
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Redirecting to login...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Authenticated user - show dashboard layout
   return (
