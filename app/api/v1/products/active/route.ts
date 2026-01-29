@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
       .lean()
       .then(docs => docs.map(doc => {
         // Remove the id virtual field that Mongoose adds
-        const { id, __v, ...rest } = doc;
+        const { __v, ...rest } = doc;
         return rest;
       }));
 
