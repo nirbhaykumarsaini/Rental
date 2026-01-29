@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
             sizes: cleanedSizes,
             isActive: variant.isActive !== false
           };
-        }).filter(variant => variant.color && variant.colorCode); // Filter out incomplete variants
+        }).filter((variant: { color: any; colorCode: any; }) => variant.color && variant.colorCode); // Filter out incomplete variants
       } catch (error) {
         console.error('Error parsing variants:', error);
         variants = [];
