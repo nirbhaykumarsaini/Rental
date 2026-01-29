@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 
-export default function SalesChart() {
+export default function SalesChart({chartData}: {chartData?: any}) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
