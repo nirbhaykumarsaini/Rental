@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
 
       if (wishlistItem.variantId && product.variants) {
         const variant = product.variants.find(
-          (v: { _id: { toString: () => any; }; }) => v._id.toString() === wishlistItem.variantId,
+          (v) => v._id === wishlistItem.variantId,
         );
 
         if (variant) {
