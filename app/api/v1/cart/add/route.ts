@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
       }
 
       selectedVariant = product.variants.find(
-        (v) => v._id === variantId,
+        (v) => v._id?.toString() === variantId,
       );
       if (!selectedVariant || !selectedVariant.isActive) {
         return NextResponse.json(

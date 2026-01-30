@@ -62,18 +62,32 @@ export async function POST(request: NextRequest) {
       let color = "";
       let image = product.images[0];
 
-      if (wishlistItem.variantId && product.variants) {
-        const variant = product.variants.find(
-          (v) => v._id === wishlistItem.variantId,
-        );
+      // Convert wishlistItem.variantId to string for comparison
+      const variantIdString = wishlistItem.variantId?.toString();
+
+      if (variantIdString && product.variants && product.variants.length > 0) {
+        const variant = product.variants.find((v: any) => {
+          if (!v._id) return false;
+          // Compare both as strings to handle ObjectId vs string comparison
+          const vIdStr = v._id.toString ? v._id.toString() : String(v._id);
+          return vIdStr === variantIdString;
+        });
 
         if (variant) {
-          price = variant.price;
-          color = variant.color;
-          image = variant.images[0] || image;
+          price = variant.price || 0;
+          color = variant.color || "";
+          image = (variant.images && variant.images.length > 0) ? variant.images[0] : image;
         }
+      } else if (product.hasVariants && product.variants && product.variants.length > 0) {
+        // No variant specified or no variantId, use first variant
+        price = product.variants[0].price || 0;
+        color = product.variants[0].color || "";
+        image = (product.variants[0].images && product.variants[0].images.length > 0) 
+          ? product.variants[0].images[0] 
+          : image;
       } else {
-        price = product.variants?.[0]?.price || 0;
+        // Product without variants
+        price = product.price || 0;
       }
 
       if (price === 0) {
@@ -99,7 +113,7 @@ export async function POST(request: NextRequest) {
       const existingCartItemIndex = cart.items.findIndex(
         (item: { productId: { toString: () => string; }; variantId: string; }) =>
           item.productId.toString() === wishlistItem.productId.toString() &&
-          item.variantId === wishlistItem.variantId,
+          (item.variantId === variantIdString || (!item.variantId && !variantIdString))
       );
 
       if (existingCartItemIndex > -1) {
@@ -109,7 +123,7 @@ export async function POST(request: NextRequest) {
         // Add new item to cart
         cart.items.push({
           productId: wishlistItem.productId,
-          variantId: wishlistItem.variantId || undefined,
+          variantId: variantIdString || undefined,
           quantity,
           price,
           name: product.name,

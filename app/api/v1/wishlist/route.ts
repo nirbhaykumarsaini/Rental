@@ -6,6 +6,7 @@ import { authenticate } from '@/app/middlewares/authMiddleware';
 import mongoose from 'mongoose';
 
 // GET - Get user's wishlist with populated product details
+// GET - Get user's wishlist with populated product details
 export async function GET(request: NextRequest) {
   try {
     await connectDB();
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
     const processedItems = wishlist.items.map((item: any) => {
       const product = item.productId;
       let variant = null;
-      let currentPrice = 0;
+      let currentPrice = product?.price || 0; // Start with base product price
       let isAvailable = false;
       let images = product?.images || [];
 
@@ -43,18 +44,36 @@ export async function GET(request: NextRequest) {
         // Check if product is available
         isAvailable = product.isPublished && product.status === 'in-stock';
 
-        // Get variant-specific data if variantId exists
-        if (item.variantId && product.variants) {
-          variant = product.variants.find((v: any) => 
-            v._id.toString() === item.variantId
-          );
+        // Get variant-specific data if variantId exists and product has variants
+        if (item.variantId && product.variants && product.variants.length > 0) {
+          // Convert variantId to string for comparison
+          const variantIdStr = item.variantId.toString();
+          
+          // Find variant by _id - check both string and ObjectId comparison
+          variant = product.variants.find((v: any) => {
+            if (!v._id) return false;
+            
+            // Handle both string and ObjectId comparisons
+            const vIdStr = v._id.toString ? v._id.toString() : String(v._id);
+            return vIdStr === variantIdStr;
+          });
+          
           if (variant) {
-            currentPrice = variant.price;
-            images = variant.images.length > 0 ? variant.images : images;
+            currentPrice = variant.price || 0;
+            // Use variant images if available, otherwise use product images
+            images = (variant.images && variant.images.length > 0) ? variant.images : images;
+          } else {
+            // Variant not found, fallback to first variant or base price
+            if (product.hasVariants && product.variants.length > 0) {
+              currentPrice = product.variants[0].price || 0;
+            }
           }
+        } else if (product.hasVariants && product.variants && product.variants.length > 0) {
+          // Product has variants but no variantId specified, use first variant
+          currentPrice = product.variants[0].price || 0;
         } else {
-          // Get base product price (first variant or base price)
-          currentPrice = product.variants?.[0]?.price || 0;
+          // Product without variants, use base price
+          currentPrice = product.price || 0;
         }
 
         return {
@@ -68,7 +87,7 @@ export async function GET(request: NextRequest) {
             name: product.name,
             slug: product.slug,
             images,
-            price: currentPrice,
+            price: currentPrice, // Use the calculated price
             hasVariants: product.hasVariants,
             isPublished: product.isPublished,
             status: product.status,
@@ -77,9 +96,12 @@ export async function GET(request: NextRequest) {
             minOrderQuantity: product.minOrderQuantity
           },
           variant: variant ? {
+            _id: variant._id,
             color: variant.color,
             colorCode: variant.colorCode,
-            price: variant.price
+            price: variant.price,
+            images: variant.images,
+            isActive: variant.isActive
           } : null
         };
       }
