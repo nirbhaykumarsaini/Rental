@@ -45,13 +45,16 @@ export async function POST(request: NextRequest) {
 
       const wishlistItem = wishlist.items[itemIndex];
 
-      // Get product details for cart
-      const product = await Product.findById(wishlistItem.productId).session(
+      // Get product details for cart - convert to plain object
+      const productDoc = await Product.findById(wishlistItem.productId).session(
         session,
       );
-      if (!product) {
+      if (!productDoc) {
         throw new Error("Product not found");
       }
+
+      // Convert to plain object to work with the interface
+      const product = productDoc.toObject() as any;
 
       if (!product.isPublished || product.status !== "in-stock") {
         throw new Error("Product is not available for purchase");
@@ -86,8 +89,10 @@ export async function POST(request: NextRequest) {
           ? product.variants[0].images[0] 
           : image;
       } else {
-        // Product without variants
-        price = product.price || 0;
+        // Product without variants - but your schema doesn't have a root price field
+        // So if there are no variants, we can't get a price
+        // This should not happen if hasVariants is false and variants array is empty
+        throw new Error("Product has no variants and no base price available");
       }
 
       if (price === 0) {
@@ -168,7 +173,9 @@ export async function POST(request: NextRequest) {
 
     if (
       error.message.includes("not found") ||
-      error.message.includes("not available")
+      error.message.includes("not available") ||
+      error.message.includes("no variants") ||
+      error.message.includes("Could not determine")
     ) {
       return NextResponse.json(
         { status: false, message: error.message },
