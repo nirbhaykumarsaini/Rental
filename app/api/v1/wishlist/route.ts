@@ -214,66 +214,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// PUT - Update wishlist item (note, etc.)
-export async function PUT(request: NextRequest) {
-  try {
-    await connectDB();
-    const { userId } = await authenticate(request);
-    
-    const body = await request.json();
-    const { wishlistItemId, note } = body;
-
-    if (!wishlistItemId) {
-      return NextResponse.json(
-        { status: false, message: 'Wishlist item ID is required' },
-        { status: 400 }
-      );
-    }
-
-    const wishlist = await Wishlist.findOne({ userId, isDefault: true });
-    if (!wishlist) {
-      return NextResponse.json(
-        { status: false, message: 'Wishlist not found' },
-        { status: 404 }
-      );
-    }
-
-    const itemIndex = wishlist.items.findIndex((item: { _id: { toString: () => any; }; }) => 
-      item._id.toString() === wishlistItemId
-    );
-
-    if (itemIndex === -1) {
-      return NextResponse.json(
-        { status: false, message: 'Wishlist item not found' },
-        { status: 404 }
-      );
-    }
-
-    // Update note if provided
-    if (note !== undefined) {
-      wishlist.items[itemIndex].note = note;
-    }
-
-    await wishlist.save();
-
-    return NextResponse.json({
-      status: true,
-      message: 'Wishlist item updated successfully',
-      data: {
-        wishlistItemId,
-        note: wishlist.items[itemIndex].note
-      }
-    });
-
-  } catch (error: any) {
-    console.error('Error updating wishlist item:', error);
-    return NextResponse.json(
-      { status: false, message: error.message || 'Failed to update wishlist item' },
-      { status: 500 }
-    );
-  }
-}
-
 // DELETE - Remove item from wishlist
 export async function DELETE(request: NextRequest) {
   try {
