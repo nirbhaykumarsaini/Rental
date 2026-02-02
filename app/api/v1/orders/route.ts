@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
         }
 
         const variant = product.variants.find(
-          (v: any) => v._id === cartItem.variantId,
+          (v) => v._id?.toString() === cartItem.variantId,
         );
 
         if (!variant || !variant.isActive) {
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
           }
 
           const size = variant.sizes.find(
-            (s: any) => s._id.toString() === cartItem.sizeId,
+            (s) => s._id?.toString() === cartItem.sizeId,
           );
 
           if (!size || !size.isActive) {
