@@ -10,6 +10,7 @@ import Order, {
 } from "@/app/models/Order";
 import Address from "@/app/models/Address";
 import { authenticate } from "@/app/middlewares/authMiddleware";
+import User from "@/app/models/User";
 
 export async function POST(request: NextRequest) {
   try {

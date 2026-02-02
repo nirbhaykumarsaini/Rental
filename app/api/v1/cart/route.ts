@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/app/config/db';
 import Cart from '@/app/models/Cart';
-import Product from '@/app/models/Product';
 import { authenticate } from '@/app/middlewares/authMiddleware';
 
 // GET - Get user's cart

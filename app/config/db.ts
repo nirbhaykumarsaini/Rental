@@ -1,3 +1,4 @@
+// D:\B2B\app\config\db.ts
 import mongoose from 'mongoose';
 import { MONGO_URI } from '@/app/constants/index';
 
