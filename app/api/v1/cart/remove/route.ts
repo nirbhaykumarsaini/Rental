@@ -27,7 +27,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const initialLength = cart.items.length;
-    cart.items = cart.items.filter((item:any) => item._id.toString() !== cartItemId);
+    cart.items = cart.items.filter((item: { _id: { toString: () => string; }; }) => item._id.toString() !== cartItemId);
     
     if (cart.items.length === initialLength) {
       return NextResponse.json(
