@@ -5,7 +5,7 @@ import APIError from "../lib/errors/APIError";
 export interface IOrderItem {
   productId: mongoose.Types.ObjectId;
   productName: string;
-  productSlug: string;
+  // productSlug: string;
   variantId?: string;
   sizeId?: string;
   color?: string;
@@ -97,11 +97,11 @@ const orderItemSchema = new Schema<IOrderItem>(
       required: [true, "Product name is required"],
       trim: true,
     },
-    productSlug: {
-      type: String,
-      required: [true, "Product slug is required"],
-      trim: true,
-    },
+    // productSlug: {
+    //   type: String,
+    //   required: [true, "Product slug is required"],
+    //   trim: true,
+    // },
     variantId: {
       type: String,
       default: null,
