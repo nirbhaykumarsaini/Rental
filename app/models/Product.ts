@@ -1,3 +1,4 @@
+// D:\B2B\app\models\Product.ts
 import mongoose, { Document, Model, Schema } from 'mongoose';
 
 // Interface for ProductVariantSize
@@ -240,6 +241,7 @@ productSchema.pre('findOneAndUpdate', function() {
   
   if (update.$set) cleanUpdate(update.$set);
   if (update) cleanUpdate(update);
+  
 });
 
 // Indexes for better query performance
@@ -332,21 +334,6 @@ productSchema.statics.updateInventory = async function(
   return await product.save();
 };
 
-// Interface for Product Model
-interface IProductModel extends Model<IProductDocument> {
-  findBySlug(slug: string): Promise<IProductDocument | null>;
-  findFeatured(): Promise<IProductDocument[]>;
-  findByCategory(category: string): Promise<IProductDocument[]>;
-  updateInventory(
-    productId: string, 
-    variantIndex: number, 
-    sizeIndex: number, 
-    inventory: number
-  ): Promise<IProductDocument>;
-}
-
-// Create and export the model
-const Product: IProductModel = mongoose.models.Product as IProductModel || 
-  mongoose.model<IProductDocument, IProductModel>('Product', productSchema);
+const Product: Model<IProductDocument> = mongoose.models.Product || mongoose.model<IProductDocument>('Product', productSchema);
 
 export default Product;

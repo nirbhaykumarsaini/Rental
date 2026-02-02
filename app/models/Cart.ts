@@ -2,14 +2,14 @@ import mongoose, { Document, Model, Schema } from 'mongoose';
 
 export interface ICartItem {
   productId: mongoose.Types.ObjectId;
-  variantId?: string;
-  sizeId?: string;
+  variantId?: string; // Reference to variant _id
+  sizeId?: string;    // Reference to size _id
   quantity: number;
-  price: number;
-  name: string;
-  color?: string;
-  size?: string;
-  image?: string;
+  price: number;      // Price at time of adding to cart
+  name: string;       // Product name at time of adding
+  color?: string;     // Variant color
+  size?: string;      // Size value (e.g., "M", "L")
+  image?: string;     // Main image for display
 }
 
 export interface ICart {
@@ -114,13 +114,6 @@ cartSchema.statics.findByUserId = function(userId: string | mongoose.Types.Objec
   });
 };
 
-// Interface for Cart Model
-interface ICartModel extends Model<ICartDocument> {
-  findByUserId(userId: string | mongoose.Types.ObjectId): Promise<ICartDocument | null>;
-}
-
-// Create and export the model
-const Cart: ICartModel = mongoose.models.Cart as ICartModel || 
-  mongoose.model<ICartDocument, ICartModel>('Cart', cartSchema);
+const Cart = mongoose.models.Cart || mongoose.model<ICartDocument>('Cart', cartSchema);
 
 export default Cart;
