@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
         }
 
         const variant = product.variants.find(
-          (v: any) => v._id.toString() === cartItem.variantId.toString(),
+          (v: any) => v._id === cartItem.variantId,
         );
 
         if (!variant || !variant.isActive) {
