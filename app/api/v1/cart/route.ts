@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/app/config/db';
 import Cart from '@/app/models/Cart';
 import { authenticate } from '@/app/middlewares/authMiddleware';
+import Product from '@/app/models/Product';
 
 // GET - Get user's cart
 export async function GET(request: NextRequest) {
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
       .populate({
         path: 'items.productId',
         select: 'name slug images variants isPublished status minOrderQuantity',
-        model: 'Product'
+        model: Product
       })
       .lean();
 
