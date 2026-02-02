@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if item already exists in cart
-    const existingItemIndex = cart.items.findIndex((item: { productId: { toString: () => string; }; variantId: string; sizeId: string; }) => {
+    const existingItemIndex = cart.items.findIndex((item:any) => {
       if (product.hasVariants) {
         return (
           item.productId.toString() === productId &&
