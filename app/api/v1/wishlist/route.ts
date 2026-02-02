@@ -217,7 +217,7 @@ export async function POST(request: NextRequest) {
         itemCount: wishlist.itemCount,
         addedProductId: productId
       }
-    }, { status: 201 });
+    }, { status: 200 });
 
   } catch (error: any) {
     console.error('Error adding to wishlist:', error);

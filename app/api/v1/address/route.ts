@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
         message: "Address created successfully",
         data: newAddress
       },
-      { status: 201 },
+      { status: 200 },
     );
   } catch (error: any) {
     console.error("Error creating address:", error);

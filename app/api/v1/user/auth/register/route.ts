@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
           otpExpiresAt: user.otpExpiresAt,
         },
       },
-      { status: 201 },
+      { status: 200 },
     );
   } catch (error: any) {
     return errorHandler(error);

@@ -190,7 +190,7 @@ export async function POST(request: NextRequest) {
       status: true,
       message: 'Product created successfully',
       data: product
-    }, { status: 201 });
+    }, { status: 200 });
 
   } catch (error: any) {
     console.error('Error creating product:', error);

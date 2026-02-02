@@ -201,7 +201,7 @@ export async function POST(request: NextRequest) {
           totalPrice: cart.totalPrice,
         },
       },
-      { status: 201 },
+      { status: 200 },
     );
   } catch (error: any) {
     console.error("Error adding item to cart:", error);

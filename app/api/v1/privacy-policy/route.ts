@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
         isActive: newPolicy.isActive,
         createdAt: newPolicy.createdAt
       }
-    }, { status: 201 });
+    }, { status: 200 });
 
   } catch (error: any) {
     console.error("Error creating privacy policy:", error);

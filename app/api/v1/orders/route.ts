@@ -283,7 +283,7 @@ export async function POST(request: NextRequest) {
         message: "Order created successfully",
         data: createdOrder,
       },
-      { status: 201 },
+      { status: 200 },
     );
   } catch (error: any) {
     console.error("Error creating order:", error);
