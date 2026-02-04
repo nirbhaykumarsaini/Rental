@@ -5,7 +5,7 @@ import Product from '@/app/models/Product';
 import { authenticate } from '@/app/middlewares/authMiddleware';
 import mongoose from 'mongoose';
 
-// GET - Get user's wishlist with populated product details
+
 // GET - Get user's wishlist with populated product details
 export async function GET(request: NextRequest) {
   try {
@@ -101,7 +101,14 @@ export async function GET(request: NextRequest) {
             colorCode: variant.colorCode,
             price: variant.price,
             images: variant.images,
-            isActive: variant.isActive
+            isActive: variant.isActive,
+            sizes: variant.sizes ? variant.sizes.map((size: any) => ({
+              _id: size._id,
+              size: size.size,
+              inventory: size.inventory,
+              sku: size.sku,
+              isActive: size.isActive
+            })) : []
           } : null
         };
       }
