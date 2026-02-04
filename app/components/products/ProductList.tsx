@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import {
   Search,
-  Filter,
   MoreVertical,
   Edit,
   Trash2,
@@ -20,10 +19,11 @@ import {
   Layers,
   Tag,
   Globe,
-  RefreshCw,
-  Loader2
 } from 'lucide-react';
 import { Product } from '@/app/types/product.types';
+import { Category } from '@/app/types/category.types';
+import toast from 'react-hot-toast';
+import categoryService from '@/app/services/categoryService';
 
 interface ProductListProps {
   products: Product[];
@@ -31,20 +31,18 @@ interface ProductListProps {
   onAddProduct?: () => void;
   onEditProduct?: (product: Product) => void;
   onDeleteProduct?: (productId: string) => void;
-  onRefresh?: () => void;
 }
 
 // Categories and status options
 const categories = ['All', 'Clothing', 'Electronics', 'Accessories', 'Footwear', 'Home', 'Other'];
 const statusOptions = ['All', 'in-stock', 'low-stock', 'out-of-stock', 'draft', 'archived'];
 
-export function ProductList({ 
-  products, 
-  loading, 
-  onAddProduct, 
-  onEditProduct, 
+export function ProductList({
+  products,
+  loading,
+  onAddProduct,
+  onEditProduct,
   onDeleteProduct,
-  onRefresh 
 }: ProductListProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -53,27 +51,51 @@ export function ProductList({
   const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set());
   const [sortBy, setSortBy] = useState<'name' | 'createdAt' | 'price'>('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const itemsPerPage = 5;
+  const [categories, setCategories] = useState<Category[]>([]);
+
+
+
+  const fetchCategories = async () => {
+    try {
+      const response = await categoryService.getCategories({
+        withSubcategories: true,
+        withProductCount: true
+      });
+
+      if (response.status && response.data) {
+        setCategories(response.data);
+      } else {
+        toast.error(response.message || 'Failed to fetch categories');
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      toast.error('Failed to load categories');
+    }
+  };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
   // Filter products based on search, category, and status
   const filteredProducts = products.filter(product => {
-    const matchesSearch = 
+    const matchesSearch =
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.slug.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (product.tags && product.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())));
-    
+
     const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
     const matchesStatus = selectedStatus === 'All' || product.status === selectedStatus;
-    
+
     return matchesSearch && matchesCategory && matchesStatus;
   });
 
   // Sort filtered products
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     let aValue: any, bValue: any;
-    
+
     switch (sortBy) {
       case 'name':
         aValue = a.name.toLowerCase();
@@ -89,7 +111,7 @@ export function ProductList({
         bValue = new Date(b.createdAt).getTime();
         break;
     }
-    
+
     if (sortOrder === 'asc') {
       return aValue > bValue ? 1 : -1;
     } else {
@@ -138,7 +160,7 @@ export function ProductList({
     if (!product.hasVariants || !product.variants || product.variants.length === 0) {
       return product.minOrderQuantity || 0;
     }
-    
+
     return product.variants.reduce((total, variant) => {
       const variantTotal = variant.sizes?.reduce((sum, size) => sum + (size.inventory || 0), 0) || 0;
       return total + variantTotal;
@@ -147,9 +169,9 @@ export function ProductList({
 
   const calculateLowStockCount = (product: Product) => {
     if (!product.hasVariants || !product.variants) return 0;
-    
+
     return product.variants.reduce((count, variant) => {
-      const lowStockSizes = variant.sizes?.filter(size => 
+      const lowStockSizes = variant.sizes?.filter(size =>
         (size.inventory || 0) > 0 && (size.inventory || 0) <= 10
       ).length || 0;
       return count + lowStockSizes;
@@ -158,9 +180,9 @@ export function ProductList({
 
   const calculateOutOfStockCount = (product: Product) => {
     if (!product.hasVariants || !product.variants) return 0;
-    
+
     return product.variants.reduce((count, variant) => {
-      const outOfStockSizes = variant.sizes?.filter(size => 
+      const outOfStockSizes = variant.sizes?.filter(size =>
         (size.inventory || 0) === 0
       ).length || 0;
       return count + outOfStockSizes;
@@ -183,40 +205,29 @@ export function ProductList({
     if (!product.hasVariants || !product.variants || product.variants.length === 0) {
       return `₹${product.variants?.[0]?.price?.toFixed(2) || '0.00'}`;
     }
-    
+
     const prices = product.variants.map(v => v.price);
     const minPrice = Math.min(...prices);
     const maxPrice = Math.max(...prices);
-    
+
     if (minPrice === maxPrice) {
       return `₹${minPrice.toFixed(2)}`;
     }
-    
+
     return `₹${minPrice.toFixed(2)} - ₹${maxPrice.toFixed(2)}`;
   };
 
   const getUniqueSizes = (product: Product) => {
     if (!product.hasVariants || !product.variants) return [];
-    
+
     const sizeSet = new Set<string>();
     product.variants.forEach(variant => {
       variant.sizes?.forEach(size => {
         sizeSet.add(size.size);
       });
     });
-    
-    return Array.from(sizeSet);
-  };
 
-  const handleRefresh = async () => {
-    if (onRefresh) {
-      setIsRefreshing(true);
-      try {
-        await onRefresh();
-      } finally {
-        setIsRefreshing(false);
-      }
-    }
+    return Array.from(sizeSet);
   };
 
   const handleSort = (field: 'name' | 'createdAt' | 'price') => {
@@ -245,19 +256,6 @@ export function ProductList({
         </div>
 
         <div className="flex items-center space-x-3">
-          <button
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isRefreshing ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <RefreshCw className="w-4 h-4 mr-2" />
-            )}
-            Refresh
-          </button>
-          
           <button
             onClick={onAddProduct}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-medium flex items-center"
@@ -288,7 +286,7 @@ export function ProductList({
             className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             {categories.map(category => (
-              <option key={category} value={category}>{category}</option>
+              <option key={category._id} value={category.name}>{category.name}</option>
             ))}
           </select>
 
@@ -305,27 +303,25 @@ export function ProductList({
           </select>
 
           <div className="flex items-center space-x-2">
-            <button 
+            <button
               onClick={() => handleSort('name')}
-              className={`px-4 py-2.5 border rounded-lg flex items-center ${
-                sortBy === 'name' 
-                  ? 'border-blue-500 bg-blue-50 text-blue-700' 
+              className={`px-4 py-2.5 border rounded-lg flex items-center ${sortBy === 'name'
+                  ? 'border-blue-500 bg-blue-50 text-blue-700'
                   : 'border-gray-300 hover:bg-gray-50'
-              }`}
+                }`}
             >
               Name
               {sortBy === 'name' && (
                 <span className="ml-2">{sortOrder === 'asc' ? '↑' : '↓'}</span>
               )}
             </button>
-            
-            <button 
+
+            <button
               onClick={() => handleSort('price')}
-              className={`px-4 py-2.5 border rounded-lg flex items-center ${
-                sortBy === 'price' 
-                  ? 'border-blue-500 bg-blue-50 text-blue-700' 
+              className={`px-4 py-2.5 border rounded-lg flex items-center ${sortBy === 'price'
+                  ? 'border-blue-500 bg-blue-50 text-blue-700'
                   : 'border-gray-300 hover:bg-gray-50'
-              }`}
+                }`}
             >
               Price
               {sortBy === 'price' && (
@@ -384,7 +380,7 @@ export function ProductList({
                 const lowStockCount = calculateLowStockCount(product);
                 const outOfStockCount = calculateOutOfStockCount(product);
                 const uniqueSizes = getUniqueSizes(product);
-                
+
                 return (
                   <div key={product._id} className="border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
                     {/* Product Header */}
@@ -393,8 +389,8 @@ export function ProductList({
                         <div className="flex items-start space-x-4">
                           <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
                             {product.images && product.images.length > 0 ? (
-                              <img 
-                                src={product.images[0]} 
+                              <img
+                                src={product.images[0]}
                                 alt={product.name}
                                 className="w-full h-full object-cover"
                               />
@@ -433,7 +429,7 @@ export function ProductList({
                             </div>
                           </div>
                         </div>
-                        
+
                         <div className="flex flex-col items-end space-y-2">
                           <div className={`flex items-center px-3 py-1 rounded-full ${getStatusColor(product.status)}`}>
                             {getStatusIcon(product.status)}
@@ -441,14 +437,14 @@ export function ProductList({
                               {getStatusText(product.status)}
                             </span>
                           </div>
-                          
+
                           <div className="text-right">
                             <p className="text-lg font-semibold text-gray-900">{getPriceRange(product)}</p>
                             <p className="text-sm text-gray-500">Total Stock: {totalStock} units</p>
                           </div>
                         </div>
                       </div>
-                      
+
                       {/* Quick Stats */}
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
                         <div className="bg-gray-50 rounded-lg p-3">
@@ -462,7 +458,7 @@ export function ProductList({
                             <Palette className="w-5 h-5 text-gray-400" />
                           </div>
                         </div>
-                        
+
                         <div className="bg-gray-50 rounded-lg p-3">
                           <div className="flex items-center justify-between">
                             <div>
@@ -472,7 +468,7 @@ export function ProductList({
                             <Ruler className="w-5 h-5 text-gray-400" />
                           </div>
                         </div>
-                        
+
                         <div className="bg-gray-50 rounded-lg p-3">
                           <div className="flex items-center justify-between">
                             <div>
@@ -482,7 +478,7 @@ export function ProductList({
                             <AlertCircle className="w-5 h-5 text-yellow-500" />
                           </div>
                         </div>
-                        
+
                         <div className="bg-gray-50 rounded-lg p-3">
                           <div className="flex items-center justify-between">
                             <div>
@@ -493,7 +489,7 @@ export function ProductList({
                           </div>
                         </div>
                       </div>
-                      
+
                       {/* Footer Actions */}
                       <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
                         <div className="flex items-center space-x-3">
@@ -506,7 +502,7 @@ export function ProductList({
                               {isExpanded ? 'Hide Variants' : `Show ${product.variants.length} Colors`}
                             </button>
                           )}
-                          
+
                           {product.tags && product.tags.length > 0 && (
                             <div className="flex items-center">
                               {product.tags.slice(0, 3).map((tag, index) => (
@@ -520,7 +516,7 @@ export function ProductList({
                             </div>
                           )}
                         </div>
-                        
+
                         <div className="flex items-center space-x-2">
                           {onEditProduct && (
                             <button
@@ -531,11 +527,11 @@ export function ProductList({
                               <Edit className="w-4 h-4" />
                             </button>
                           )}
-                          
+
                           <button className="p-2 hover:bg-gray-100 rounded-lg text-gray-600" title="View Product">
                             <Eye className="w-4 h-4" />
                           </button>
-                          
+
                           {onDeleteProduct && (
                             <button
                               onClick={() => onDeleteProduct(product._id)}
@@ -545,14 +541,14 @@ export function ProductList({
                               <Trash2 className="w-4 h-4" />
                             </button>
                           )}
-                          
+
                           <button className="p-2 hover:bg-gray-100 rounded-lg text-gray-600">
                             <MoreVertical className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Expanded Variants Section */}
                     {isExpanded && product.hasVariants && product.variants && product.variants.length > 0 && (
                       <div className="border-t border-gray-200 bg-gray-50 rounded-b-lg">
@@ -563,7 +559,7 @@ export function ProductList({
                               <div key={variant._id || variantIndex} className="bg-white border border-gray-200 rounded-lg p-4">
                                 <div className="flex items-center justify-between mb-3">
                                   <div className="flex items-center space-x-3">
-                                    <div 
+                                    <div
                                       className="w-6 h-6 rounded border"
                                       style={{ backgroundColor: variant.colorCode }}
                                     />
@@ -572,16 +568,15 @@ export function ProductList({
                                       <p className="text-sm text-gray-500">₹{variant.price.toFixed(2)}</p>
                                     </div>
                                     <div className="flex items-center">
-                                      <span className={`px-2 py-0.5 rounded text-xs ${
-                                        variant.isActive 
-                                          ? 'bg-green-100 text-green-800' 
+                                      <span className={`px-2 py-0.5 rounded text-xs ${variant.isActive
+                                          ? 'bg-green-100 text-green-800'
                                           : 'bg-gray-100 text-gray-800'
-                                      }`}>
+                                        }`}>
                                         {variant.isActive ? 'Active' : 'Inactive'}
                                       </span>
                                     </div>
                                   </div>
-                                  
+
                                   <div className="text-right">
                                     <p className="text-sm text-gray-600">
                                       {variant.sizes?.length || 0} size{(variant.sizes?.length || 0) !== 1 ? 's' : ''}
@@ -591,7 +586,7 @@ export function ProductList({
                                     </p>
                                   </div>
                                 </div>
-                                
+
                                 {/* Sizes Table */}
                                 {variant.sizes && variant.sizes.length > 0 && (
                                   <div className="overflow-x-auto">
@@ -629,35 +624,33 @@ export function ProductList({
                                             </td>
                                             <td className="px-3 py-2">
                                               <div className="flex items-center">
-                                                <span className={`font-medium ${
-                                                  (size.inventory || 0) === 0 
-                                                    ? 'text-red-600' 
-                                                    : (size.inventory || 0) <= 10 
-                                                    ? 'text-yellow-600' 
-                                                    : 'text-green-600'
-                                                }`}>
+                                                <span className={`font-medium ${(size.inventory || 0) === 0
+                                                    ? 'text-red-600'
+                                                    : (size.inventory || 0) <= 10
+                                                      ? 'text-yellow-600'
+                                                      : 'text-green-600'
+                                                  }`}>
                                                   {size.inventory || 0} units
                                                 </span>
                                               </div>
                                             </td>
                                             <td className="px-3 py-2">
                                               <div className="flex items-center">
-                                                <div className={`w-2 h-2 rounded-full mr-2 ${
-                                                  size.isActive 
-                                                    ? (size.inventory || 0) === 0 
-                                                      ? 'bg-red-500' 
-                                                      : (size.inventory || 0) <= 10 
-                                                      ? 'bg-yellow-500' 
-                                                      : 'bg-green-500'
+                                                <div className={`w-2 h-2 rounded-full mr-2 ${size.isActive
+                                                    ? (size.inventory || 0) === 0
+                                                      ? 'bg-red-500'
+                                                      : (size.inventory || 0) <= 10
+                                                        ? 'bg-yellow-500'
+                                                        : 'bg-green-500'
                                                     : 'bg-gray-400'
-                                                }`} />
+                                                  }`} />
                                                 <span className="text-sm text-gray-700">
-                                                  {size.isActive 
-                                                    ? (size.inventory || 0) === 0 
-                                                      ? 'Out of Stock' 
-                                                      : (size.inventory || 0) <= 10 
-                                                      ? 'Low Stock' 
-                                                      : 'In Stock'
+                                                  {size.isActive
+                                                    ? (size.inventory || 0) === 0
+                                                      ? 'Out of Stock'
+                                                      : (size.inventory || 0) <= 10
+                                                        ? 'Low Stock'
+                                                        : 'In Stock'
                                                     : 'Inactive'
                                                   }
                                                 </span>
@@ -669,16 +662,16 @@ export function ProductList({
                                     </table>
                                   </div>
                                 )}
-                                
+
                                 {/* Variant Images */}
                                 {variant.images && variant.images.length > 0 && (
                                   <div className="mt-3">
                                     <p className="text-xs text-gray-500 mb-2">Color Images:</p>
                                     <div className="flex space-x-2 overflow-x-auto pb-2">
                                       {variant.images.map((image, index) => (
-                                        <img 
+                                        <img
                                           key={index}
-                                          src={image} 
+                                          src={image}
                                           alt={`${variant.color} - ${index + 1}`}
                                           className="w-12 h-12 object-cover rounded border border-gray-200"
                                         />
@@ -689,16 +682,16 @@ export function ProductList({
                               </div>
                             ))}
                           </div>
-                          
+
                           {/* Product Images */}
                           {product.images && product.images.length > 1 && (
                             <div className="mt-4">
                               <p className="text-xs text-gray-500 mb-2">Product Images:</p>
                               <div className="flex space-x-2 overflow-x-auto pb-2">
                                 {product.images.map((image, index) => (
-                                  <img 
+                                  <img
                                     key={index}
-                                    src={image} 
+                                    src={image}
                                     alt={`${product.name} - ${index + 1}`}
                                     className="w-16 h-16 object-cover rounded-lg border border-gray-200"
                                   />
@@ -726,11 +719,10 @@ export function ProductList({
                 <button
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
-                  className={`p-2 rounded-lg border ${
-                    currentPage === 1
+                  className={`p-2 rounded-lg border ${currentPage === 1
                       ? 'border-gray-200 text-gray-400 cursor-not-allowed'
                       : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                  }`}
+                    }`}
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </button>
@@ -739,11 +731,10 @@ export function ProductList({
                   <button
                     key={index + 1}
                     onClick={() => setCurrentPage(index + 1)}
-                    className={`w-10 h-10 rounded-lg border ${
-                      currentPage === index + 1
+                    className={`w-10 h-10 rounded-lg border ${currentPage === index + 1
                         ? 'border-blue-600 bg-blue-50 text-blue-600'
                         : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                    }`}
+                      }`}
                   >
                     {index + 1}
                   </button>
@@ -752,11 +743,10 @@ export function ProductList({
                 <button
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages}
-                  className={`p-2 rounded-lg border ${
-                    currentPage === totalPages
+                  className={`p-2 rounded-lg border ${currentPage === totalPages
                       ? 'border-gray-200 text-gray-400 cursor-not-allowed'
                       : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                  }`}
+                    }`}
                 >
                   <ChevronRight className="w-5 h-5" />
                 </button>

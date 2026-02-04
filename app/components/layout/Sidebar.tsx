@@ -33,7 +33,8 @@ export default function Sidebar() {
         { name: 'Profile', icon: <User className="w-5 h-5" />, href: '/profile' },
         { name: 'Settings', icon: <Settings className="w-5 h-5" />, href: '/settings' },
         { name: 'Privacy And Policy', icon: <Settings className="w-5 h-5" />, href: '/privacy-policy' },
-         { name: 'Manage Slider', icon: <Settings className="w-5 h-5" />, href: '/slider' },
+        { name: 'Manage Slider', icon: <Settings className="w-5 h-5" />, href: '/slider' },
+        { name: "FAQ's", icon: <Settings className="w-5 h-5" />, href: '/faq' },
       ]
     },
   ];

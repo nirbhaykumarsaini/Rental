@@ -320,7 +320,7 @@ export default function SliderPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="mb-8">
         <div className="flex flex-row lg:flex-row lg:items-center justify-between gap-4">
