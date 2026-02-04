@@ -36,7 +36,8 @@ export async function POST(request: NextRequest) {
       }
 
       const itemIndex = wishlist.items.findIndex(
-        (item: { _id: { toString: () => any; }; }) => item._id.toString() === wishlistItemId,
+        (item: { _id: { toString: () => any } }) =>
+          item._id.toString() === wishlistItemId,
       );
 
       if (itemIndex === -1) {
@@ -63,10 +64,12 @@ export async function POST(request: NextRequest) {
       // Prepare cart item data
       let price = 0;
       let color = "";
+      let size = "";
       let image = product.images[0];
-
-      // Convert wishlistItem.variantId to string for comparison
+      
+      // Convert IDs to strings for comparison
       const variantIdString = wishlistItem.variantId?.toString();
+      const sizeIdString = wishlistItem.sizeId?.toString();
 
       if (variantIdString && product.variants && product.variants.length > 0) {
         const variant = product.variants.find((v: any) => {
@@ -80,14 +83,41 @@ export async function POST(request: NextRequest) {
           price = variant.price || 0;
           color = variant.color || "";
           image = (variant.images && variant.images.length > 0) ? variant.images[0] : image;
+          
+          // Find size if sizeId is provided
+          if (sizeIdString && variant.sizes && variant.sizes.length > 0) {
+            const sizeObj = variant.sizes.find((s: any) => {
+              if (!s._id) return false;
+              const sIdStr = s._id.toString ? s._id.toString() : String(s._id);
+              return sIdStr === sizeIdString;
+            });
+            
+            if (sizeObj) {
+              size = sizeObj.value || "";
+            }
+          }
         }
       } else if (product.hasVariants && product.variants && product.variants.length > 0) {
         // No variant specified or no variantId, use first variant
-        price = product.variants[0].price || 0;
-        color = product.variants[0].color || "";
-        image = (product.variants[0].images && product.variants[0].images.length > 0) 
-          ? product.variants[0].images[0] 
+        const firstVariant = product.variants[0];
+        price = firstVariant.price || 0;
+        color = firstVariant.color || "";
+        image = (firstVariant.images && firstVariant.images.length > 0)
+          ? firstVariant.images[0]
           : image;
+          
+        // Find size if sizeId is provided
+        if (sizeIdString && firstVariant.sizes && firstVariant.sizes.length > 0) {
+          const sizeObj = firstVariant.sizes.find((s: any) => {
+            if (!s._id) return false;
+            const sIdStr = s._id.toString ? s._id.toString() : String(s._id);
+            return sIdStr === sizeIdString;
+          });
+          
+          if (sizeObj) {
+            size = sizeObj.value || "";
+          }
+        }
       } else {
         // Product without variants - but your schema doesn't have a root price field
         // So if there are no variants, we can't get a price
@@ -114,25 +144,44 @@ export async function POST(request: NextRequest) {
         cart = cart[0];
       }
 
-      // Check if item already exists in cart
+      // Check if item already exists in cart with same variantId AND sizeId
       const existingCartItemIndex = cart.items.findIndex(
-        (item: { productId: { toString: () => string; }; variantId: string; }) =>
-          item.productId.toString() === wishlistItem.productId.toString() &&
-          (item.variantId === variantIdString || (!item.variantId && !variantIdString))
+        (item: {
+          productId: { toString: () => string };
+          variantId?: string;
+          sizeId?: string;
+        }) => {
+          // Compare productId
+          const sameProduct = item.productId.toString() === wishlistItem.productId.toString();
+          
+          // Compare variantId (both could be undefined or null)
+          const sameVariant = 
+            (item.variantId === variantIdString) || 
+            (!item.variantId && !variantIdString);
+          
+          // Compare sizeId (both could be undefined or null)
+          const sameSize = 
+            (item.sizeId === sizeIdString) || 
+            (!item.sizeId && !sizeIdString);
+          
+          return sameProduct && sameVariant && sameSize;
+        }
       );
 
       if (existingCartItemIndex > -1) {
         // Update quantity if already in cart
         cart.items[existingCartItemIndex].quantity += quantity;
       } else {
-        // Add new item to cart
+        // Add new item to cart with both variantId and sizeId
         cart.items.push({
           productId: wishlistItem.productId,
           variantId: variantIdString || undefined,
+          sizeId: sizeIdString || undefined,
           quantity,
           price,
           name: product.name,
           color: color || undefined,
+          size: size || undefined,
           image: image || undefined,
         });
       }
