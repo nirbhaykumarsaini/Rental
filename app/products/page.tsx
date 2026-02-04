@@ -373,7 +373,6 @@ export default function ProductsPage() {
         onAddProduct={handleAddProduct}
         onEditProduct={handleEditProduct}
         onDeleteProduct={handleDeleteProduct}
-        onRefresh={() => setRefreshTrigger(prev => prev + 1)}
       />
 
       {/* Add/Edit Product Modal */}
