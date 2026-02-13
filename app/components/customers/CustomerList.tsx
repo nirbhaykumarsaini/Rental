@@ -239,60 +239,7 @@ export function CustomerList({
                 </p>
               </div>
             </div>
-
-            {/* Filter Tabs */}
-            <div className="flex flex-wrap gap-4">
-              <div className="flex items-center space-x-2">
-                <Filter className="w-4 h-4 text-gray-400" />
-                <span className="text-sm font-medium text-gray-700">Filter by:</span>
-              </div>
-              
-              <div className="flex flex-wrap gap-2">
-                {tierOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => setSelectedTier(option.value)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors flex items-center ${
-                      selectedTier === option.value
-                        ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50 border border-transparent'
-                    }`}
-                  >
-                    {option.label}
-                    <span className={`ml-2 px-1.5 py-0.5 rounded-full text-xs ${
-                      selectedTier === option.value
-                        ? 'bg-purple-100 text-purple-700'
-                        : 'bg-gray-100 text-gray-700'
-                    }`}>
-                      {option.count}
-                    </span>
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {statusOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => setSelectedStatus(option.value)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors flex items-center ${
-                      selectedStatus === option.value
-                        ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50 border border-transparent'
-                    }`}
-                  >
-                    {option.label}
-                    <span className={`ml-2 px-1.5 py-0.5 rounded-full text-xs ${
-                      selectedStatus === option.value
-                        ? 'bg-purple-100 text-purple-700'
-                        : 'bg-gray-100 text-gray-700'
-                    }`}>
-                      {option.count}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
+            
           </div>
         </div>
       </div>

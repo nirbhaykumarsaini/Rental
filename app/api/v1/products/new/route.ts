@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
     await connectDB();
 
     // Execute query
-    const products = await Product.find({ isPublished: true })
+    const products = await Product.find({ isNewArrival: true })
       .lean()
       .then(docs => docs.map(doc => {
         // Remove the id virtual field that Mongoose adds

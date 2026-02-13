@@ -1,25 +1,18 @@
 // D:\B2B\app\models\Product.ts
 import mongoose, { Document, Model, Schema } from 'mongoose';
 
-// Interface for ProductVariantSize
-export interface IProductVariantSize {
+// Interface for Rental Price
+export interface IProductRentalPrice {
   _id?: mongoose.Types.ObjectId;
-  size: string;
-  inventory: number;
-  sku: string;
+  days: number;
+  price: number;
   isActive: boolean;
 }
 
-// Interface for ProductVariant
-export interface IProductVariant {
-  _id?: mongoose.Types.ObjectId;
-  color: string;
-  colorCode: string;
-  images: string[];
-  price: number;
-  compareAtPrice?: number;
-  sizes: IProductVariantSize[];
-  isActive: boolean;
+// Interface for Product Features
+export interface IProductFeature {
+  name: string;
+  description?: string;
 }
 
 // Interface for Product
@@ -27,22 +20,21 @@ export interface IProduct {
   slug: string;
   name: string;
   category: string;
-  minOrderQuantity: number;
   description: string;
   images: string[];
-  mainImage?: string;
-  tags: string[];
-  weight?: number;
-  dimensions?: {
-    length: number;
-    width: number;
-    height: number;
-  };
-  variants: IProductVariant[];
-  hasVariants: boolean;
+  color: string;
+  colorCode: string;
+  price: number;
+  compareAtPrice?: number;
+  discountPercentage?: number;
+  sizes: string[];
+  features: IProductFeature[];
+  rentalPrices: IProductRentalPrice[];
+  isAvailable: boolean;
   isFeatured: boolean;
+  isNewArrival: boolean;
   isPublished: boolean;
-  status: 'draft' | 'in-stock' | 'low-stock' | 'out-of-stock' | 'archived';
+  status: 'draft' | 'available' | 'unavailable' | 'archived'; // Updated enum values
   createdBy?: mongoose.Types.ObjectId;
   updatedBy?: mongoose.Types.ObjectId;
 }
@@ -53,28 +45,21 @@ export interface IProductDocument extends IProduct, Document {
   updatedAt: Date;
 }
 
-// Variant Size Schema
-const productVariantSizeSchema = new Schema<IProductVariantSize>({
+// Rental Price Schema
+const productRentalPriceSchema = new Schema<IProductRentalPrice>({
   _id: {
     type: Schema.Types.ObjectId,
     auto: true
   },
-  size: { 
-    type: String, 
-    required: [true, 'Size is required'],
-    trim: true
-  },
-  inventory: { 
+  days: { 
     type: Number, 
-    required: [true, 'Inventory is required'],
-    min: [0, 'Inventory cannot be negative'],
-    default: 0
+    required: [true, 'Rental days are required'],
+    min: [1, 'Rental days must be at least 1']
   },
-  sku: { 
-    type: String, 
-    required: [true, 'SKU is required'],
-    trim: true,
-    uppercase: true
+  price: { 
+    type: Number, 
+    required: [true, 'Rental price is required'],
+    min: [0, 'Price cannot be negative']
   },
   isActive: { 
     type: Boolean, 
@@ -82,39 +67,16 @@ const productVariantSizeSchema = new Schema<IProductVariantSize>({
   }
 });
 
-// Variant Schema
-const productVariantSchema = new Schema<IProductVariant>({
-  _id: {
-    type: Schema.Types.ObjectId,
-    auto: true
-  },
-  color: { 
+// Product Features Schema
+const productFeatureSchema = new Schema<IProductFeature>({
+  name: { 
     type: String, 
-    required: [true, 'Color is required'],
+    required: [true, 'Feature name is required'],
     trim: true
   },
-  colorCode: { 
+  description: { 
     type: String, 
-    required: [true, 'Color code is required'],
-    match: [/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, 'Please enter a valid hex color code']
-  },
-  images: [{ 
-    type: String, 
-    required: [true, 'At least one image is required']
-  }],
-  price: { 
-    type: Number, 
-    required: [true, 'Price is required'],
-    min: [0, 'Price cannot be negative']
-  },
-  compareAtPrice: { 
-    type: Number, 
-    min: [0, 'Compare at price cannot be negative']
-  },
-  sizes: [productVariantSizeSchema],
-  isActive: { 
-    type: Boolean, 
-    default: true 
+    trim: true 
   }
 });
 
@@ -141,12 +103,6 @@ const productSchema = new Schema<IProductDocument>(
       required: [true, 'Category is required'],
       trim: true
     },
-    minOrderQuantity: { 
-      type: Number, 
-      required: [true, 'Minimum order quantity is required'],
-      min: [1, 'Minimum order quantity must be at least 1'],
-      default: 1
-    },
     description: { 
       type: String, 
       required: [true, 'Description is required'],
@@ -156,28 +112,47 @@ const productSchema = new Schema<IProductDocument>(
       type: String, 
       required: [true, 'At least one product image is required']
     }],
-    mainImage: { 
-      type: String 
-    },
-    tags: [{ 
+    color: { 
       type: String, 
-      trim: true 
-    }],
-    weight: { 
+      required: [true, 'Color is required'],
+      trim: true
+    },
+    colorCode: { 
+      type: String, 
+      required: [true, 'Color code is required'],
+      match: [/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, 'Please enter a valid hex color code'],
+      default: '#000000'
+    },
+    price: { 
       type: Number, 
-      min: [0, 'Weight cannot be negative']
+      required: [true, 'Price is required'],
+      min: [0, 'Price cannot be negative']
     },
-    dimensions: {
-      length: { type: Number, min: 0 },
-      width: { type: Number, min: 0 },
-      height: { type: Number, min: 0 }
+    compareAtPrice: { 
+      type: Number, 
+      min: [0, 'Compare at price cannot be negative']
     },
-    variants: [productVariantSchema],
-    hasVariants: { 
+    discountPercentage: { 
+      type: Number,
+      min: [0, 'Discount cannot be negative'],
+      max: [100, 'Discount cannot exceed 100%']
+    },
+    sizes: [{ 
+      type: String, 
+      required: [true, 'At least one size is required'],
+      trim: true
+    }],
+    features: [productFeatureSchema],
+    rentalPrices: [productRentalPriceSchema],
+    isAvailable: { 
+      type: Boolean, 
+      default: true 
+    },
+    isFeatured: { 
       type: Boolean, 
       default: false 
     },
-    isFeatured: { 
+    isNewArrival: { 
       type: Boolean, 
       default: false 
     },
@@ -187,7 +162,7 @@ const productSchema = new Schema<IProductDocument>(
     },
     status: { 
       type: String, 
-      enum: ['draft', 'in-stock', 'low-stock', 'out-of-stock', 'archived'],
+      enum: ['draft', 'available', 'unavailable', 'archived'], // Updated enum values
       default: 'draft'
     },
     createdBy: { 
@@ -206,132 +181,153 @@ const productSchema = new Schema<IProductDocument>(
   }
 );
 
-// Middleware to clean invalid _id fields before save
+// Pre-save middleware to calculate discount percentage
 productSchema.pre('save', function() {
-  if (this.variants && this.variants.length > 0) {
-    this.variants.forEach((variant: any) => {
-      if (variant.sizes && variant.sizes.length > 0) {
-        variant.sizes.forEach((size: any) => {
-          // Remove _id if it's empty string or invalid
-          if (size._id === '' || (size._id && !mongoose.Types.ObjectId.isValid(size._id))) {
-            delete size._id;
-          }
-        });
-      }
-    });
+  if (this.compareAtPrice && this.price) {
+    if (this.compareAtPrice > this.price) {
+      const discount = ((this.compareAtPrice - this.price) / this.compareAtPrice) * 100;
+      this.discountPercentage = Math.round(discount * 10) / 10;
+    } else {
+      this.discountPercentage = undefined;
+    }
+  } else {
+    this.discountPercentage = undefined;
   }
 });
 
-// Middleware for findOneAndUpdate operations
-productSchema.pre('findOneAndUpdate', function() {
-  const update = this.getUpdate() as any;
-  const cleanUpdate = (data: any) => {
-    if (data.variants && Array.isArray(data.variants)) {
-      data.variants.forEach((variant: any) => {
-        if (variant.sizes && Array.isArray(variant.sizes)) {
-          variant.sizes.forEach((size: any) => {
-            if (size._id === '' || (size._id && !mongoose.Types.ObjectId.isValid(size._id))) {
-              delete size._id;
-            }
-          });
-        }
-      });
+// Pre-save middleware to set status based on availability and publish status
+productSchema.pre('save', function() {
+  if (this.isPublished) {
+    if (this.isAvailable) {
+      this.status = 'available';
+    } else {
+      this.status = 'unavailable';
     }
-  };
-  
-  if (update.$set) cleanUpdate(update.$set);
-  if (update) cleanUpdate(update);
-  
+  } else {
+    this.status = 'draft';
+  }
+});
+
+// Pre-save middleware to clean rental prices
+productSchema.pre('save', function() {
+  if (this.rentalPrices && this.rentalPrices.length > 0) {
+    // Remove any rental prices with invalid days or price
+    this.rentalPrices = this.rentalPrices.filter(rp => 
+      rp.days && rp.days > 0 && rp.price && rp.price >= 0
+    );
+  }
 });
 
 // Indexes for better query performance
 productSchema.index({ slug: 1 }, { unique: true });
-productSchema.index({ name: 'text', description: 'text', tags: 'text' });
+productSchema.index({ name: 'text', description: 'text' });
 productSchema.index({ category: 1 });
 productSchema.index({ status: 1, isPublished: 1 });
 productSchema.index({ isFeatured: 1 });
-productSchema.index({ 'variants.sizes.inventory': 1 });
+productSchema.index({ isNewArrival: 1 });
+productSchema.index({ isAvailable: 1 });
+productSchema.index({ color: 1 });
 productSchema.index({ createdAt: -1 });
-productSchema.index({ 'variants.price': 1 });
+productSchema.index({ price: 1 });
 
-// Virtual for total inventory
-productSchema.virtual('totalInventory').get(function() {
-  if (!this.hasVariants || this.variants.length === 0) {
-    return this.minOrderQuantity;
+// Virtual for minimum rental price
+productSchema.virtual('minRentalPrice').get(function() {
+  if (!this.rentalPrices || this.rentalPrices.length === 0) {
+    return this.price;
   }
   
-  return this.variants.reduce((total, variant) => {
-    return total + variant.sizes.reduce((sum, size) => sum + size.inventory, 0);
-  }, 0);
-});
-
-// Virtual for price range
-productSchema.virtual('priceRange').get(function() {
-  if (!this.hasVariants || this.variants.length === 0) {
-    return { min: 0, max: 0 };
-  }
+  const activePrices = this.rentalPrices.filter(rp => rp.isActive);
+  if (activePrices.length === 0) return this.price;
   
-  const prices = this.variants.map(v => v.price);
-  return {
-    min: Math.min(...prices),
-    max: Math.max(...prices)
-  };
+  return Math.min(...activePrices.map(rp => rp.price));
 });
 
-// Middleware to set mainImage if not provided
-productSchema.pre('save', function() {
-  if (!this.mainImage && this.images && this.images.length > 0) {
-    this.mainImage = this.images[0];
-  }
-});
-
-// Middleware to update status based on inventory
-productSchema.pre('save', function() {
-  if (this.hasVariants && this.variants.length > 0) {
-    const totalInventory = this.variants.reduce((total, variant) => {
-      return total + variant.sizes.reduce((sum, size) => sum + size.inventory, 0);
-    }, 0);
-    
-    if (totalInventory === 0) {
-      this.status = 'out-of-stock';
-    } else if (totalInventory <= 10) {
-      this.status = 'low-stock';
-    } else {
-      this.status = 'in-stock';
-    }
-  }
+// Virtual for available rental options
+productSchema.virtual('activeRentalOptions').get(function() {
+  if (!this.rentalPrices) return [];
+  return this.rentalPrices.filter(rp => rp.isActive);
 });
 
 // Static method to find by slug
 productSchema.statics.findBySlug = function(slug: string) {
-  return this.findOne({ slug });
+  return this.findOne({ slug, isPublished: true });
 };
 
 // Static method to find featured products
 productSchema.statics.findFeatured = function() {
-  return this.find({ isFeatured: true, isPublished: true, status: 'in-stock' });
+  return this.find({ 
+    isFeatured: true, 
+    isPublished: true, 
+    isAvailable: true,
+    status: 'available'
+  }).sort('-createdAt');
 };
 
-// Static method to find products by category
-productSchema.statics.findByCategory = function(category: string) {
-  return this.find({ category, isPublished: true, status: 'in-stock' });
+// Static method to find new arrivals
+productSchema.statics.findNewArrivals = function() {
+  return this.find({ 
+    isNewArrival: true, 
+    isPublished: true, 
+    isAvailable: true,
+    status: 'available'
+  }).sort('-createdAt');
 };
 
-// Static method to update inventory
-productSchema.statics.updateInventory = async function(
-  productId: string, 
-  variantIndex: number, 
-  sizeIndex: number, 
-  inventory: number
-) {
-  const product = await this.findById(productId);
-  if (!product) throw new Error('Product not found');
-  
-  if (!product.variants[variantIndex]) throw new Error('Variant not found');
-  if (!product.variants[variantIndex].sizes[sizeIndex]) throw new Error('Size not found');
-  
-  product.variants[variantIndex].sizes[sizeIndex].inventory = inventory;
-  return await product.save();
+// Static method to find available products
+productSchema.statics.findAvailable = function() {
+  return this.find({ 
+    isPublished: true, 
+    isAvailable: true,
+    status: 'available'
+  }).sort('-createdAt');
+};
+
+// Static method to get product statistics
+productSchema.statics.getStatistics = async function() {
+  const [totalProducts, available, unavailable, featured, newArrivals, draftCount] = await Promise.all([
+    this.countDocuments(),
+    this.countDocuments({ isAvailable: true, isPublished: true, status: 'available' }),
+    this.countDocuments({ isAvailable: false, isPublished: true, status: 'unavailable' }),
+    this.countDocuments({ isFeatured: true }),
+    this.countDocuments({ isNewArrival: true }),
+    this.countDocuments({ status: 'draft' })
+  ]);
+
+  const byCategory = await this.aggregate([
+    { $group: { _id: '$category', count: { $sum: 1 } } },
+    { $sort: { count: -1 } },
+    { $limit: 10 }
+  ]);
+
+  const categoryStats: Record<string, number> = {};
+  byCategory.forEach((item: any) => {
+    categoryStats[item._id] = item.count;
+  });
+
+  const priceStats = await this.aggregate([
+    { $match: { isPublished: true } },
+    { $group: { 
+      _id: null, 
+      avgPrice: { $avg: '$price' },
+      minPrice: { $min: '$price' },
+      maxPrice: { $max: '$price' }
+    }}
+  ]);
+
+  return {
+    totalProducts,
+    available,
+    unavailable,
+    featured,
+    newArrivals,
+    draftCount,
+    byCategory: categoryStats,
+    averagePrice: priceStats[0]?.avgPrice || 0,
+    priceRange: {
+      min: priceStats[0]?.minPrice || 0,
+      max: priceStats[0]?.maxPrice || 0
+    }
+  };
 };
 
 const Product: Model<IProductDocument> = mongoose.models.Product || mongoose.model<IProductDocument>('Product', productSchema);

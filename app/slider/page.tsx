@@ -329,7 +329,7 @@ export default function SliderPage() {
               <Image className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl md:text-2xl font-bold text-gray-900">Slider Management</h1>
+              <h1 className="text-2xl md:text-2xl font-bold text-gray-900">Slider</h1>
               <p className="text-gray-500">Manage homepage slider images</p>
             </div>
           </div>
@@ -362,43 +362,6 @@ export default function SliderPage() {
         </div>
       )}
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white rounded-xl shadow border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Total Sliders</p>
-              <p className="text-2xl font-bold text-gray-900">{sliders.length}</p>
-            </div>
-            <Grid className="w-8 h-8 text-blue-500" />
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-xl shadow border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Active Sliders</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {sliders.filter(s => s.isActive).length}
-              </p>
-            </div>
-            <ToggleRight className="w-8 h-8 text-green-500" />
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-xl shadow border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Inactive Sliders</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {sliders.filter(s => !s.isActive).length}
-              </p>
-            </div>
-            <ToggleLeft className="w-8 h-8 text-gray-400" />
-          </div>
-        </div>
-      </div>
-
       {/* Sliders Grid */}
       {sliders.length === 0 ? (
         <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-12 text-center">
@@ -407,13 +370,7 @@ export default function SliderPage() {
           <p className="text-gray-600 mb-6">
             Get started by adding your first slider image.
           </p>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-purple-700"
-          >
-            <Plus className="w-4 h-4 inline mr-2" />
-            Create First Slider
-          </button>
+        
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -1,9 +1,8 @@
 // D:\B2B\app\api\v1\products\route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/app/config/db';
-import Product, { IProduct } from '@/app/models/Product';
+import Product from '@/app/models/Product';
 import { uploadToCloudinary } from '@/app/utils/cloudinary';
-import mongoose from 'mongoose';
 
 // POST - Create new product
 export async function POST(request: NextRequest) {
@@ -12,105 +11,73 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
     
-    // Extract product data
+    // Extract basic product data
     const name = formData.get('name') as string;
     const slug = formData.get('slug') as string;
     const category = formData.get('category') as string;
     const description = formData.get('description') as string;
-    const minOrderQuantity = parseInt(formData.get('minOrderQuantity') as string) || 1;
-    const hasVariants = formData.get('hasVariants') === 'true';
+    const color = formData.get('color') as string;
+    const colorCode = formData.get('colorCode') as string;
+    const price = parseFloat(formData.get('price') as string) || 0;
+    const compareAtPrice = formData.get('compareAtPrice') 
+      ? parseFloat(formData.get('compareAtPrice') as string) 
+      : undefined;
+    
+    // Boolean fields
+    const isAvailable = formData.get('isAvailable') === 'true';
     const isFeatured = formData.get('isFeatured') === 'true';
+    const isNewArrival = formData.get('isNewArrival') === 'true';
     const isPublished = formData.get('isPublished') === 'true';
     
-    // Handle tags
-    const tagsStr = formData.get('tags') as string;
-    const tags = tagsStr ? tagsStr.split(',').map(tag => tag.trim()) : [];
-    
-    // Handle variants JSON
-    const variantsStr = formData.get('variants') as string;
-    let variants = [];
-    if (variantsStr && hasVariants) {
-      try {
-        variants = JSON.parse(variantsStr);
-        
-        // Clean variant data - remove empty or invalid _id fields
-        variants = variants.map((variant: any, index: number) => {
-          // Clean sizes array
-          const cleanedSizes = (variant.sizes || []).map((size: any) => {
-            // Create clean size object
-            const cleanSize: any = {
-              size: size.size || '',
-              inventory: parseInt(size.inventory) || 0,
-              sku: size.sku || '',
-              isActive: size.isActive !== false
-            };
-            
-            // Only include _id if it's a valid MongoDB ObjectId
-            if (size._id && size._id !== '' && mongoose.Types.ObjectId.isValid(size._id)) {
-              cleanSize._id = new mongoose.Types.ObjectId(size._id);
-            } else if (size._id === '' || size._id === null || size._id === undefined) {
-              // Remove empty _id - let MongoDB generate it
-              delete size._id;
-            }
-            
-            return cleanSize;
-          }).filter((size: any) => size.size && size.sku); // Filter out incomplete sizes
-          
-          return {
-            color: variant.color || `Color ${index + 1}`,
-            colorCode: variant.colorCode || '#000000',
-            images: variant.images || [],
-            price: parseFloat(variant.price) || 0,
-            compareAtPrice: variant.compareAtPrice ? parseFloat(variant.compareAtPrice) : undefined,
-            sizes: cleanedSizes,
-            isActive: variant.isActive !== false
-          };
-        }).filter((variant: { color: any; colorCode: any; }) => variant.color && variant.colorCode); // Filter out incomplete variants
-      } catch (error) {
-        console.error('Error parsing variants:', error);
-        variants = [];
-      }
+    // Parse JSON arrays
+    let sizes: string[] = [];
+    try {
+      sizes = JSON.parse(formData.get('sizes') as string) || [];
+    } catch (error) {
+      console.error('Error parsing sizes:', error);
+      sizes = [];
     }
     
-    // Handle main images upload
-    const mainImages = formData.getAll('mainImages') as File[];
-    const uploadedMainImages: string[] = [];
+    let features: any[] = [];
+    try {
+      features = JSON.parse(formData.get('features') as string) || [];
+    } catch (error) {
+      console.error('Error parsing features:', error);
+      features = [];
+    }
     
-    for (const image of mainImages) {
+    let rentalPrices: any[] = [];
+    try {
+      rentalPrices = JSON.parse(formData.get('rentalPrices') as string) || [];
+    } catch (error) {
+      console.error('Error parsing rental prices:', error);
+      rentalPrices = [];
+    }
+    
+    // Handle product images
+    const productImages = formData.getAll('images') as File[];
+    const keepImages = formData.get('keepImages') as string;
+    
+    let uploadedImages: string[] = [];
+    
+    // Add kept images
+    if (keepImages) {
+      uploadedImages = keepImages.split(',');
+    }
+    
+    // Upload new images
+    for (const image of productImages) {
       if (image.size > 0) {
         try {
           const uploaded = await uploadToCloudinary(image, 'products');
-          uploadedMainImages.push(uploaded.secure_url);
+          uploadedImages.push(uploaded.secure_url);
         } catch (uploadError) {
-          console.error('Error uploading main image:', uploadError);
+          console.error('Error uploading product image:', uploadError);
         }
       }
     }
     
-    // Handle variant images (if any)
-    if (hasVariants && variants.length > 0) {
-      for (let i = 0; i < variants.length; i++) {
-        const variantImages = formData.getAll(`variantImages_${i}`) as File[];
-        const uploadedVariantImages: string[] = [];
-        
-        for (const image of variantImages) {
-          if (image.size > 0) {
-            try {
-              const uploaded = await uploadToCloudinary(image, 'products/variants');
-              uploadedVariantImages.push(uploaded.secure_url);
-            } catch (uploadError) {
-              console.error('Error uploading variant image:', uploadError);
-            }
-          }
-        }
-        
-        if (uploadedVariantImages.length > 0) {
-          variants[i].images = uploadedVariantImages;
-        }
-      }
-    }
-    
-    // Validate required data
+    // Validate required fields
     if (!name || !slug || !category || !description) {
       return NextResponse.json(
         { status: false, message: 'Name, slug, category, and description are required' },
@@ -118,70 +85,83 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    if (uploadedMainImages.length === 0) {
+    if (!color) {
       return NextResponse.json(
-        { status: false, message: 'At least one main image is required' },
+        { status: false, message: 'Color is required' },
         { status: 400 }
       );
     }
     
+    if (!price || price <= 0) {
+      return NextResponse.json(
+        { status: false, message: 'Valid price is required' },
+        { status: 400 }
+      );
+    }
+    
+    if (sizes.length === 0) {
+      return NextResponse.json(
+        { status: false, message: 'At least one size is required' },
+        { status: 400 }
+      );
+    }
+    
+    if (features.length === 0) {
+      return NextResponse.json(
+        { status: false, message: 'At least one feature is required' },
+        { status: 400 }
+      );
+    }
+    
+    if (uploadedImages.length === 0) {
+      return NextResponse.json(
+        { status: false, message: 'At least one product image is required' },
+        { status: 400 }
+      );
+    }
+    
+    // Filter active rental prices
+    const activeRentalPrices = rentalPrices.filter(rp => rp.isActive);
+    if (activeRentalPrices.length === 0) {
+      return NextResponse.json(
+        { status: false, message: 'At least one active rental price is required' },
+        { status: 400 }
+      );
+    }
+    
+    // Calculate discount percentage if compareAtPrice exists
+    let discountPercentage;
+    if (compareAtPrice && compareAtPrice > price) {
+      discountPercentage = Math.round(((compareAtPrice - price) / compareAtPrice) * 100 * 10) / 10;
+    }
+    
+    // Determine status based on publish and availability
+    let status: 'draft' | 'available' | 'unavailable' | 'archived' = 'draft';
+    if (isPublished) {
+      status = isAvailable ? 'available' : 'unavailable';
+    }
+    
     // Create product object
-    const productData: Partial<IProduct> = {
+    const productData = {
       slug: slug.toLowerCase().trim(),
       name: name.trim(),
       category: category.trim(),
       description: description.trim(),
-      minOrderQuantity: Math.max(1, minOrderQuantity),
-      images: uploadedMainImages,
-      tags: tags.filter(tag => tag.length > 0),
-      hasVariants,
-      variants: hasVariants ? variants : [],
+      images: uploadedImages,
+      color: color.trim(),
+      colorCode,
+      price,
+      compareAtPrice,
+      discountPercentage,
+      sizes,
+      features,
+      rentalPrices,
+      isAvailable,
       isFeatured,
+      isNewArrival,
       isPublished,
-      status: 'draft'
+      status // This now matches the enum values
     };
-    
-    // Set main image
-    if (uploadedMainImages.length > 0) {
-      productData.mainImage = uploadedMainImages[0];
-    }
-    
-    // Additional optional fields
-    const weight = formData.get('weight') as string;
-    if (weight && !isNaN(parseFloat(weight))) {
-      productData.weight = parseFloat(weight);
-    }
-    
-    // Handle dimensions
-    const length = formData.get('dimensions.length') as string;
-    const width = formData.get('dimensions.width') as string;
-    const height = formData.get('dimensions.height') as string;
-    
-    if (length && width && height && 
-        !isNaN(parseFloat(length)) && 
-        !isNaN(parseFloat(width)) && 
-        !isNaN(parseFloat(height))) {
-      productData.dimensions = {
-        length: parseFloat(length),
-        width: parseFloat(width),
-        height: parseFloat(height)
-      };
-    }
-    
-    // Log cleaned data for debugging
-    console.log('Cleaned product data:', JSON.stringify({
-      ...productData,
-      variants: productData.variants?.map(v => ({
-        ...v,
-        sizes: v.sizes?.map(s => ({
-          size: s.size,
-          inventory: s.inventory,
-          sku: s.sku,
-          isActive: s.isActive
-          // _id intentionally omitted for clarity
-        }))
-      }))
-    }, null, 2));
     
     // Create product
     const product = await Product.create(productData);
@@ -212,14 +192,6 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Handle cast errors (including the _id cast error)
-    if (error.name === 'CastError') {
-      return NextResponse.json(
-        { status: false, message: `Invalid data format: ${error.message}` },
-        { status: 400 }
-      );
-    }
-    
     return NextResponse.json(
       { status: false, message: error.message || 'Failed to create product' },
       { status: 500 }
@@ -227,8 +199,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-
-// GET - Fetch all products with pagination and filters
+// GET - Fetch all products with filters (updated status values)
 export async function GET(request: NextRequest) {
   try {
     await connectDB();
@@ -240,8 +211,12 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const search = searchParams.get('search');
     const featured = searchParams.get('featured');
+    const newArrival = searchParams.get('newArrival');
+    const available = searchParams.get('available');
+    const color = searchParams.get('color');
     const minPrice = searchParams.get('minPrice');
     const maxPrice = searchParams.get('maxPrice');
+    const sizes = searchParams.get('sizes')?.split(',');
     const sortBy = searchParams.get('sortBy') || 'createdAt';
     const sortOrder = searchParams.get('sortOrder') || 'desc';
 
@@ -255,17 +230,43 @@ export async function GET(request: NextRequest) {
     }
 
     if (status && status !== 'All') {
-      query.status = status;
+      // Map status values if needed
+      if (status === 'in-stock' || status === 'low-stock' || status === 'out-of-stock') {
+        // For backward compatibility, map to new status values
+        if (status === 'in-stock') query.status = 'available';
+        else if (status === 'out-of-stock') query.status = 'unavailable';
+        // Skip low-stock as it doesn't exist in new schema
+      } else {
+        query.status = status;
+      }
     }
 
     if (featured === 'true') {
       query.isFeatured = true;
     }
 
+    if (newArrival === 'true') {
+      query.isNewArrival = true;
+    }
+
+    if (available === 'true') {
+      query.isAvailable = true;
+      query.isPublished = true;
+      query.status = 'available';
+    }
+
+    if (color) {
+      query.color = { $regex: color, $options: 'i' };
+    }
+
+    if (sizes && sizes.length > 0) {
+      query.sizes = { $in: sizes };
+    }
+
     if (minPrice || maxPrice) {
-      query['variants.price'] = {};
-      if (minPrice) query['variants.price'].$gte = parseFloat(minPrice);
-      if (maxPrice) query['variants.price'].$lte = parseFloat(maxPrice);
+      query.price = {};
+      if (minPrice) query.price.$gte = parseFloat(minPrice);
+      if (maxPrice) query.price.$lte = parseFloat(maxPrice);
     }
 
     if (search) {
@@ -273,7 +274,7 @@ export async function GET(request: NextRequest) {
         { name: { $regex: search, $options: 'i' } },
         { description: { $regex: search, $options: 'i' } },
         { slug: { $regex: search, $options: 'i' } },
-        { tags: { $regex: search, $options: 'i' } }
+        { color: { $regex: search, $options: 'i' } }
       ];
     }
 
@@ -319,3 +320,277 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// GET product by ID
+export async function GET_byId(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    await connectDB();
+    
+    const product = await Product.findById(params.id).lean();
+    
+    if (!product) {
+      return NextResponse.json(
+        { status: false, message: 'Product not found' },
+        { status: 404 }
+      );
+    }
+    
+    return NextResponse.json({
+      status: true,
+      data: product
+    });
+    
+  } catch (error: any) {
+    console.error('Error fetching product:', error);
+    return NextResponse.json(
+      { status: false, message: error.message || 'Failed to fetch product' },
+      { status: 500 }
+    );
+  }
+}
+
+// PUT - Update product
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    await connectDB();
+    
+    const formData = await request.formData();
+    const existingProduct = await Product.findById(params.id);
+    
+    if (!existingProduct) {
+      return NextResponse.json(
+        { status: false, message: 'Product not found' },
+        { status: 404 }
+      );
+    }
+    
+    // Extract and update fields
+    const name = formData.get('name') as string;
+    const slug = formData.get('slug') as string;
+    const category = formData.get('category') as string;
+    const description = formData.get('description') as string;
+    const color = formData.get('color') as string;
+    const colorCode = formData.get('colorCode') as string;
+    const price = parseFloat(formData.get('price') as string) || existingProduct.price;
+    const compareAtPrice = formData.get('compareAtPrice') 
+      ? parseFloat(formData.get('compareAtPrice') as string) 
+      : existingProduct.compareAtPrice;
+    
+    const isAvailable = formData.get('isAvailable') === 'true';
+    const isFeatured = formData.get('isFeatured') === 'true';
+    const isNewArrival = formData.get('isNewArrival') === 'true';
+    const isPublished = formData.get('isPublished') === 'true';
+    
+    // Parse JSON arrays
+    let sizes: string[] = [];
+    try {
+      sizes = JSON.parse(formData.get('sizes') as string) || existingProduct.sizes;
+    } catch (error) {
+      sizes = existingProduct.sizes;
+    }
+    
+    let features: any[] = [];
+    try {
+      features = JSON.parse(formData.get('features') as string) || existingProduct.features;
+    } catch (error) {
+      features = existingProduct.features;
+    }
+    
+    let rentalPrices: any[] = [];
+    try {
+      rentalPrices = JSON.parse(formData.get('rentalPrices') as string) || existingProduct.rentalPrices;
+    } catch (error) {
+      rentalPrices = existingProduct.rentalPrices;
+    }
+    
+    // Handle images
+    const productImages = formData.getAll('images') as File[];
+    const keepImages = formData.get('keepImages') as string;
+    
+    let uploadedImages: string[] = [];
+    
+    // Add kept images
+    if (keepImages) {
+      uploadedImages = keepImages.split(',');
+    } else {
+      // Keep existing images if not specified
+      uploadedImages = existingProduct.images || [];
+    }
+    
+    // Upload new images
+    for (const image of productImages) {
+      if (image.size > 0) {
+        try {
+          const uploaded = await uploadToCloudinary(image, 'products');
+          uploadedImages.push(uploaded.secure_url);
+        } catch (uploadError) {
+          console.error('Error uploading product image:', uploadError);
+        }
+      }
+    }
+    
+    // Calculate discount percentage
+    let discountPercentage;
+    if (compareAtPrice && compareAtPrice > price) {
+      discountPercentage = Math.round(((compareAtPrice - price) / compareAtPrice) * 100 * 10) / 10;
+    }
+    
+    // Update product
+    const updatedProduct = await Product.findByIdAndUpdate(
+      params.id,
+      {
+        name,
+        slug: slug?.toLowerCase().trim(),
+        category,
+        description,
+        images: uploadedImages,
+        color,
+        colorCode,
+        price,
+        compareAtPrice,
+        discountPercentage,
+        sizes,
+        features,
+        rentalPrices,
+        isAvailable,
+        isFeatured,
+        isNewArrival,
+        isPublished,
+        status: isPublished 
+          ? (isAvailable ? 'available' : 'unavailable') 
+          : 'draft'
+      },
+      { new: true, runValidators: true }
+    );
+    
+    return NextResponse.json({
+      status: true,
+      message: 'Product updated successfully',
+      data: updatedProduct
+    });
+    
+  } catch (error: any) {
+    console.error('Error updating product:', error);
+    
+    if (error.code === 11000) {
+      return NextResponse.json(
+        { status: false, message: 'Product slug already exists' },
+        { status: 400 }
+      );
+    }
+    
+    return NextResponse.json(
+      { status: false, message: error.message || 'Failed to update product' },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE - Delete product
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    await connectDB();
+    
+    const product = await Product.findByIdAndDelete(params.id);
+    
+    if (!product) {
+      return NextResponse.json(
+        { status: false, message: 'Product not found' },
+        { status: 404 }
+      );
+    }
+    
+    return NextResponse.json({
+      status: true,
+      message: 'Product deleted successfully'
+    });
+    
+  } catch (error: any) {
+    console.error('Error deleting product:', error);
+    return NextResponse.json(
+      { status: false, message: error.message || 'Failed to delete product' },
+      { status: 500 }
+    );
+  }
+}
+
+// GET product by slug
+export async function GET_bySlug(request: NextRequest, { params }: { params: { slug: string } }) {
+  try {
+    await connectDB();
+    
+    const product = await Product.findOne({ slug: params.slug }).lean();
+    
+    if (!product) {
+      return NextResponse.json(
+        { status: false, message: 'Product not found' },
+        { status: 404 }
+      );
+    }
+    
+    return NextResponse.json({
+      status: true,
+      data: product
+    });
+    
+  } catch (error: any) {
+    console.error('Error fetching product by slug:', error);
+    return NextResponse.json(
+      { status: false, message: error.message || 'Failed to fetch product' },
+      { status: 500 }
+    );
+  }
+}
+
+// GET product statistics
+export async function GET_statistics(request: NextRequest) {
+  try {
+    await connectDB();
+    
+    const [
+      totalProducts,
+      available,
+      unavailable,
+      featured,
+      newArrivals,
+      draftCount,
+      byCategory
+    ] = await Promise.all([
+      Product.countDocuments(),
+      Product.countDocuments({ isAvailable: true, isPublished: true }),
+      Product.countDocuments({ isAvailable: false, isPublished: true }),
+      Product.countDocuments({ isFeatured: true }),
+      Product.countDocuments({ isNewArrival: true }),
+      Product.countDocuments({ status: 'draft' }),
+      Product.aggregate([
+        { $group: { _id: '$category', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 10 }
+      ])
+    ]);
+    
+    const categoryStats: Record<string, number> = {};
+    byCategory.forEach((item: any) => {
+      categoryStats[item._id] = item.count;
+    });
+    
+    return NextResponse.json({
+      status: true,
+      data: {
+        totalProducts,
+        available,
+        unavailable,
+        featured,
+        newArrivals,
+        draftCount,
+        byCategory: categoryStats
+      }
+    });
+    
+  } catch (error: any) {
+    console.error('Error fetching statistics:', error);
+    return NextResponse.json(
+      { status: false, message: error.message || 'Failed to fetch statistics' },
+      { status: 500 }
+    );
+  }
+}

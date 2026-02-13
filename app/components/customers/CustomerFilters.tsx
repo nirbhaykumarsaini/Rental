@@ -267,34 +267,7 @@ export function CustomerFilters({ isOpen, onClose, onApply, onReset, initialFilt
             />
           </div>
         </div>
-      </div>
-
-      {/* Tags Section */}
-      <div className="mt-6 pt-6 border-t border-gray-200">
-        <div className="flex items-center space-x-2 mb-4">
-          <Tag className="w-5 h-5 text-gray-400" />
-          <h4 className="text-sm font-medium text-gray-700">Tags</h4>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {availableTags.map((tag) => (
-            <button
-              key={tag}
-              type="button"
-              onClick={() => handleTagToggle(tag)}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium ${
-                filters.tags.includes(tag)
-                  ? 'bg-purple-100 text-purple-700 border border-purple-200'
-                  : 'bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200'
-              }`}
-            >
-              {tag}
-              {filters.tags.includes(tag) && (
-                <span className="ml-1.5">✓</span>
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
+      </div>      
 
       {/* Filter Actions */}
       <div className="flex justify-end space-x-3 pt-6 mt-6 border-t border-gray-200">

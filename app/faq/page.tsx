@@ -397,7 +397,7 @@ export default function AdminFAQPage() {
                             <HelpCircle className="w-6 h-6 text-white" />
                         </div>
                         <div>
-                            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">FAQ Management</h1>
+                            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">FAQ</h1>
                             <p className="text-gray-500">Manage frequently asked questions and categories</p>
                         </div>
                     </div>
@@ -429,139 +429,7 @@ export default function AdminFAQPage() {
                     </div>
                 </div>
             )}
-
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <div className="bg-white rounded-xl shadow border border-gray-200 p-6">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm font-medium text-gray-600">Total FAQs</p>
-                            <p className="text-2xl font-bold text-gray-900 mt-1">{faqs.length}</p>
-                        </div>
-                        <div className="p-3 bg-blue-100 rounded-lg">
-                            <FileText className="w-6 h-6 text-blue-600" />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-xl shadow border border-gray-200 p-6">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm font-medium text-gray-600">Active FAQs</p>
-                            <p className="text-2xl font-bold text-gray-900 mt-1">
-                                {faqs.filter(f => f.isActive).length}
-                            </p>
-                        </div>
-                        <div className="p-3 bg-green-100 rounded-lg">
-                            <CheckCircle className="w-6 h-6 text-green-600" />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-xl shadow border border-gray-200 p-6">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm font-medium text-gray-600">Categories</p>
-                            <p className="text-2xl font-bold text-gray-900 mt-1">{categories.length - 1}</p>
-                        </div>
-                        <div className="p-3 bg-purple-100 rounded-lg">
-                            <Tag className="w-6 h-6 text-purple-600" />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-xl shadow border border-gray-200 p-6">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm font-medium text-gray-600">Showing</p>
-                            <p className="text-2xl font-bold text-gray-900 mt-1">{filteredFaqs.length}</p>
-                        </div>
-                        <div className="p-3 bg-yellow-100 rounded-lg">
-                            <Filter className="w-6 h-6 text-yellow-600" />
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Category Stats */}
-            {categoryStats.length > 0 && (
-                <div className="mb-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-semibold text-gray-900">FAQ Distribution by Category</h2>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                        {categoryStats.map((stat) => (
-                            <div key={stat.category} className="bg-white rounded-lg border border-gray-200 p-4">
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(stat.category)}`}>
-                                        {stat.category}
-                                    </span>
-                                </div>
-                                <p className="text-2xl font-bold text-gray-900">{stat.count}</p>
-                                <p className="text-sm text-gray-500">FAQs</p>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {/* Filters */}
-            <div className="bg-white rounded-xl shadow border border-gray-200 p-6 mb-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Search */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Search FAQs
-                        </label>
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                            <input
-                                type="text"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                placeholder="Search questions, answers, or categories..."
-                                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Category Filter */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Filter by Category
-                        </label>
-                        <select
-                            value={selectedCategory}
-                            onChange={(e) => setSelectedCategory(e.target.value)}
-                            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            {categories.map((category) => (
-                                <option key={category} value={category}>
-                                    {category} {category !== 'All' && categoryStats.find(s => s.category === category) ? `(${categoryStats.find(s => s.category === category)?.count || 0})` : ''}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* Active/Inactive Filter */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Status Filter
-                        </label>
-                        <div className="flex items-center space-x-4">
-                            <button
-                                onClick={() => setShowInactive(!showInactive)}
-                                className={`px-4 py-2.5 rounded-lg flex items-center ${showInactive ? 'bg-gray-100 text-gray-700' : 'bg-blue-50 text-blue-700'}`}
-                            >
-                                <Filter className="w-4 h-4 mr-2" />
-                                {showInactive ? 'Showing All' : 'Showing Active Only'}
-                            </button>
-
-
-                        </div>
-                    </div>
-                </div>
-            </div>
+                    
 
             {/* FAQs Table */}
             <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">

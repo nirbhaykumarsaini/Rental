@@ -133,35 +133,7 @@ export function OrderList({
   return (
     <div className="bg-white rounded-xl shadow border border-gray-200 overflow-hidden">
       {/* Header with Tabs */}
-      <div className="border-b border-gray-200">
-        <div className="px-6 py-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <h2 className="text-lg font-semibold text-gray-900">Recent Orders</h2>
-            <div className="flex items-center space-x-2 overflow-x-auto pb-2 sm:pb-0">
-              {statusOptions.map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() => setSelectedStatus(option.value)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-                    selectedStatus === option.value
-                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50 border border-transparent'
-                  }`}
-                >
-                  {option.label}
-                  <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
-                    selectedStatus === option.value
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'bg-gray-100 text-gray-700'
-                  }`}>
-                    {option.count}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+      
 
       {/* Table */}
       <div className="overflow-x-auto">

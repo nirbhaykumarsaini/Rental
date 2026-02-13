@@ -4,16 +4,15 @@
 import { useState, useEffect } from 'react';
 import { CategoryList } from '@/app/components/categories/CategoryList';
 import { AddCategory } from '@/app/components/categories/AddCategory';
-import { Layers, Package, Plus, RefreshCw } from 'lucide-react';
+import { Layers, Plus } from 'lucide-react';
 import { Category } from '../types/category.types';
-import categoryService, { CategoryStatistics } from '@/app/services/categoryService';
+import categoryService from '@/app/services/categoryService';
 import { toast } from 'react-hot-toast';
 
 export default function CategoriesPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [statistics, setStatistics] = useState<CategoryStatistics | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [parentCategories, setParentCategories] = useState<Category[]>([]);
@@ -40,17 +39,6 @@ export default function CategoriesPage() {
     }
   };
 
-  const fetchStatistics = async () => {
-    try {
-      const response = await categoryService.getStatistics();
-      if (response.status && response.data) {
-        setStatistics(response.data);
-      }
-    } catch (error) {
-      console.error('Error fetching statistics:', error);
-    }
-  };
-
   const fetchParentCategories = async () => {
     try {
       const response = await categoryService.getCategories({
@@ -68,7 +56,6 @@ export default function CategoriesPage() {
 
   useEffect(() => {
     fetchCategories();
-    fetchStatistics();
     fetchParentCategories();
   }, []);
 
@@ -103,7 +90,6 @@ export default function CategoriesPage() {
         toast.success(editingCategory ? 'Category updated successfully' : 'Category created successfully');
         setIsAddModalOpen(false);
         fetchCategories();
-        fetchStatistics();
         fetchParentCategories();
       } else {
         toast.error(response.message || 'Failed to save category');
@@ -124,7 +110,6 @@ export default function CategoriesPage() {
       if (response.status) {
         toast.success('Category deleted successfully');
         fetchCategories();
-        fetchStatistics();
         fetchParentCategories();
       } else {
         toast.error(response.message || 'Failed to delete category');
@@ -134,15 +119,6 @@ export default function CategoriesPage() {
       toast.error('Failed to delete category');
     }
   };
-
-  const handleRefresh = () => {
-    setRefreshing(true);
-    fetchCategories();
-    fetchStatistics();
-    fetchParentCategories();
-  };
-
-  console.log(statistics)
 
   return (
     <div className="min-h-screen bg-gray-50 ">
@@ -154,7 +130,7 @@ export default function CategoriesPage() {
               <Layers className="w-6 h-6 text-indigo-600" />
             </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Category Management</h1>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Category</h1>
               <p className="text-gray-500 mt-1">Organize products with categories and manage category images</p>
             </div>
           </div>
@@ -178,52 +154,7 @@ export default function CategoriesPage() {
             </button>
           </div>
         </div>
-      </div>
-
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
-        <div className="bg-white rounded-xl shadow border border-gray-200 p-4 md:p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500 mb-2">Total Categories</p>
-              <p className="text-2xl font-semibold text-gray-900">
-                {loading ? '...' : statistics?.totalCategories || 0}
-              </p>
-            </div>
-            <div className="p-2 bg-indigo-50 rounded-full">
-              <Layers className="w-5 h-5 text-indigo-500" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow border border-gray-200 p-4 md:p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500 mb-2">Active Categories</p>
-              <p className="text-2xl font-semibold text-gray-900">
-                {loading ? '...' : statistics?.activeCategories || 0}
-              </p>
-            </div>
-            <div className="p-2 bg-green-50 rounded-full">
-              <div className="w-5 h-5 bg-green-500 rounded-full"></div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow border border-gray-200 p-4 md:p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500 mb-2">Inactive Categories</p>
-              <p className="text-2xl font-semibold text-gray-900">
-                {loading ? '...' : statistics?.inactiveCategories || 0}
-              </p>
-            </div>
-            <div className="p-2 bg-green-50 rounded-full">
-              <div className="w-5 h-5 bg-red-500 rounded-full"></div>
-            </div>
-          </div>
-        </div>
-      </div>
+      </div>      
 
       {/* Main Content */}
       <div className="bg-white rounded-xl shadow border border-gray-200 overflow-hidden">
@@ -244,13 +175,6 @@ export default function CategoriesPage() {
             <p className="text-gray-500 mb-6">
               Get started by creating your first product category
             </p>
-            <button
-              onClick={handleAddCategory}
-              className="px-6 py-2.5 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-            >
-              <Plus className="w-4 h-4 mr-2 inline" />
-              Add First Category
-            </button>
           </div>
         ) : (
           <CategoryList 
