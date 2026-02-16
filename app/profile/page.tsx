@@ -143,56 +143,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Right Column - Account Details */}
-        <div className="space-y-8">
-          {/* Account Details Card */}
-          <div className="bg-gradient-to-br from-white to-blue-50 rounded-xl shadow-lg border border-blue-100 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
-              <Shield className="w-5 h-5 mr-2 text-blue-600" />
-              Account Details
-            </h2>
-            
-            <div className="space-y-6">
-              {/* User Role */}
-              <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-blue-100">
-                <div className="flex items-center">
-                  <div className="p-2 bg-blue-100 rounded-lg mr-3">
-                    <Shield className="w-4 h-4 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">User Role</p>
-                    <p className="text-xs text-gray-500">Your permission level</p>
-                  </div>
-                </div>
-                <span className="px-3 py-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-semibold rounded-full capitalize">
-                  {profileData.role}
-                </span>
-              </div>
-
-              {/* Last Updated */}
-              <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-blue-100">
-                <div className="flex items-center">
-                  <div className="p-2 bg-green-100 rounded-lg mr-3">
-                    <Clock className="w-4 h-4 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">Last Updated</p>
-                    <p className="text-xs text-gray-500">Profile modification time</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900">
-                    {formatDate(profileData.updatedAt)}
-                  </p>
-                  <p className="text-xs text-green-600 font-medium">
-                    {getTimeAgo(profileData.updatedAt)}
-                  </p>
-                </div>
-              </div>
-              
-            </div>            
-          </div>
-        </div>
       </div>
     </div>
   );
