@@ -325,7 +325,7 @@ export async function GET_byId(request: NextRequest, { params }: { params: Promi
   try {
     await connectDB();
     
-    const product = await Product.findById(params.id).lean();
+    const product = await Product.findById((await params).id).lean();
     
     if (!product) {
       return NextResponse.json(
@@ -354,7 +354,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     await connectDB();
     
     const formData = await request.formData();
-    const existingProduct = await Product.findById(params.id);
+    const existingProduct = await Product.findById((await params).id);
     
     if (!existingProduct) {
       return NextResponse.json(
@@ -490,7 +490,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   try {
     await connectDB();
     
-    const product = await Product.findByIdAndDelete(params.id);
+    const product = await Product.findByIdAndDelete((await params).id);
     
     if (!product) {
       return NextResponse.json(
@@ -518,7 +518,7 @@ export async function GET_bySlug(request: NextRequest, { params }: { params: Pro
   try {
     await connectDB();
     
-    const product = await Product.findOne({ slug: params.slug }).lean();
+    const product = await Product.findOne({ slug: (await params).slug }).lean();
     
     if (!product) {
       return NextResponse.json(
