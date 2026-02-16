@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
 
     // Check if product exists in wishlist
     const isInWishlist = wishlist.items.some(
-      item => item.productId.toString() === productId
+      (item:any) => item.productId.toString() === productId
     );
 
     return NextResponse.json({
