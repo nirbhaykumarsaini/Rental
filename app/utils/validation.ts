@@ -48,3 +48,31 @@ export const resendOtpSchema = z.object({
     .string()
     .regex(/^[0-9]{10}$/, "Phone number must be exactly 10 digits"),
 });
+
+
+// Address validation schema
+export const addressSchema = z.object({
+  name: z.string().min(3, 'Name must be at least 3 characters long'),
+  phone: z.string().regex(/^[0-9]{10}$/, 'Please enter a valid 10-digit phone number'),
+  address: z.string().min(5, 'Address must be at least 5 characters long'),
+  landmark: z.string().optional().nullable(),
+  city: z.string().min(2, 'City must be at least 2 characters long'),
+  state: z.string().min(2, 'State must be at least 2 characters long'),
+  pincode: z.string().regex(/^[0-9]{6}$/, 'Please enter a valid 6-digit pincode'),
+  type: z.enum(['home', 'work', 'other']).default('home'),
+  isDefault: z.boolean().default(false),
+});
+
+// Update address schema (all fields optional except id)
+export const updateAddressSchema = z.object({
+  addressId: z.string(),
+  name: z.string().min(3, 'Name must be at least 3 characters long').optional(),
+  phone: z.string().regex(/^[0-9]{10}$/, 'Please enter a valid 10-digit phone number').optional(),
+  address: z.string().min(5, 'Address must be at least 5 characters long').optional(),
+  landmark: z.string().optional().nullable(),
+  city: z.string().min(2, 'City must be at least 2 characters long').optional(),
+  state: z.string().min(2, 'State must be at least 2 characters long').optional(),
+  pincode: z.string().regex(/^[0-9]{6}$/, 'Please enter a valid 6-digit pincode').optional(),
+  type: z.enum(['home', 'work', 'other']).optional(),
+  isDefault: z.boolean().optional(),
+});
