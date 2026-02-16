@@ -763,7 +763,7 @@ export function AddProduct({ isOpen, onClose, onSubmit, editingProduct, isLoadin
                     >
                       <option value="">Select a category</option>
                       {categories.map((category) => (
-                        <option key={category._id} value={category.slug}>
+                        <option key={category._id} value={category.name}>
                           {category.name}
                         </option>
                       ))}
