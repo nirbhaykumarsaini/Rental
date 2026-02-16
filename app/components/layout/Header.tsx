@@ -8,7 +8,9 @@ import {
   Menu,
   LogOut,
   User,
-  Settings
+  Settings,
+  Zap,
+  Award
 } from 'lucide-react';
 import { useSidebar } from '@/app/context/SidebarContext';
 import { useAuth } from '@/app/context/AuthContext';
@@ -17,8 +19,6 @@ export default function Header() {
   const { toggleSidebar } = useSidebar();
   const { user, logout } = useAuth();
 
-  console.log('User Info:', user);
-
   const handleLogout = () => {
     if (confirm('Are you sure you want to logout?')) {
       logout();
@@ -26,69 +26,74 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">
+    <header className="bg-[#1E1E2F] border-b border-[#2A2A3C] px-8 py-3 flex items-center justify-between sticky top-0 z-40">
       <div>
         <button 
           onClick={toggleSidebar}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          className="p-2 hover:bg-[#2A2A3C] rounded-xl transition-all duration-200 group"
         >
-          <Menu className="w-5 h-5 text-gray-600" />
+          <Menu className="w-5 h-5 text-gray-400 group-hover:text-orange-400" />
         </button>
       </div>
 
       <div className="flex items-center space-x-4">
+
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
           <input
             type="text"
-            placeholder="Search here..."
-            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="Search..."
+            className="pl-10 pr-4 py-2.5 bg-[#2A2A3C] border-0 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50 w-80"
           />
         </div>
 
-        {/* <button className="p-2 hover:bg-gray-100 rounded-full relative">
-          <Bell className="w-5 h-5 text-gray-600" />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-        </button> */}
+        <button className="p-2 hover:bg-[#2A2A3C] rounded-xl relative group transition-all duration-200">
+          <Bell className="w-5 h-5 text-gray-400 group-hover:text-orange-400" />
+          <span className="absolute top-1 right-1 w-2 h-2 bg-orange-500 rounded-full"></span>
+        </button>
+
+        <button className="p-2 hover:bg-[#2A2A3C] rounded-xl group transition-all duration-200">
+          <Award className="w-5 h-5 text-gray-400 group-hover:text-orange-400" />
+        </button>
 
         <div className="flex items-center space-x-3 group relative">
-          <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-            <span className="text-white text-sm font-medium capitalize">
-              {user?.role?.charAt(0)}
+          <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-pink-500 rounded-xl shadow-lg flex items-center justify-center transform group-hover:scale-110 transition-transform">
+            <span className="text-white text-sm font-bold uppercase">
+              {user?.role?.charAt(0) || 'U'}
             </span>
           </div>
-          <div>
-            <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
+          <div className="hidden md:block">
+            <p className="text-sm font-medium text-white capitalize">{user?.role || 'User'}</p>
+            <p className="text-xs text-gray-400">{user?.email || 'user@example.com'}</p>
           </div>
-          <ChevronDown className="w-4 h-4 text-gray-500 cursor-pointer" />
+          <ChevronDown className="w-4 h-4 text-gray-400 group-hover:text-orange-400 transition-colors cursor-pointer" />
           
-          {/* Dropdown Menu */}
-          <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-            <div className="px-4 py-3 border-b border-gray-100">
-              <p className="text-sm font-medium text-gray-900 capitalize">{user?.role}</p>
-              <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+          <div className="absolute right-0 top-full mt-2 w-64 bg-[#2A2A3C] rounded-xl shadow-2xl border border-[#3A3A4C] py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+            <div className="px-4 py-3 border-b border-[#3A3A4C]">
+              <p className="text-sm font-medium text-white capitalize">{user?.role || 'User'}</p>
+              <p className="text-xs text-gray-400 truncate">{user?.email || 'user@example.com'}</p>
             </div>
             
             <a
               href="/profile"
-              className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100"
+              className="flex items-center px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-[#3A3A4C] transition-colors"
             >
-              <User className="w-4 h-4 mr-3 text-gray-400" />
+              <User className="w-4 h-4 mr-3 text-orange-400" />
               My Profile
             </a>
             
             <a
               href="/settings"
-              className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100"
+              className="flex items-center px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-[#3A3A4C] transition-colors"
             >
-              <Settings className="w-4 h-4 mr-3 text-gray-400" />
+              <Settings className="w-4 h-4 mr-3 text-orange-400" />
               Account Settings
             </a>
             
-            <div className="border-t border-gray-100 mt-2 pt-2">
+            <div className="border-t border-[#3A3A4C] mt-2 pt-2">
               <button
                 onClick={handleLogout}
-                className="flex items-center w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50"
+                className="flex items-center w-full px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
               >
                 <LogOut className="w-4 h-4 mr-3" />
                 Logout
