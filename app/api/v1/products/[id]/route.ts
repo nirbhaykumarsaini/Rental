@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/app/config/db";
-import Product, {
-  IProductVariant,
-  IProductVariantSize,
-} from "@/app/models/Product";
+
 import {
   extractPublicIdsFromProduct,
   deleteMultipleFromCloudinary,
   uploadToCloudinary,
 } from "@/app/utils/cloudinary";
 import mongoose from "mongoose";
+import Product from "@/app/models/Product";
 
 // Type for route params (Next.js 13+ uses Promise)
 type RouteParams = Promise<{ id: string }>;
@@ -142,7 +140,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     
     // Update product
     const updatedProduct = await Product.findByIdAndUpdate(
-      params.id,
+      (await params).id,
       {
         name,
         slug: slug?.toLowerCase().trim(),
