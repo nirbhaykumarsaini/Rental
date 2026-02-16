@@ -12,7 +12,7 @@ export const verifyToken = (token: string): JwtPayload | string => {
 
 export const generateOtp = (): string => {
   // For now, return static OTP as per requirement
-  return "1234";
+  return "123456";
 };
 
 export const isOtpExpired = (otpExpiresAt: Date): boolean => {

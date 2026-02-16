@@ -1,4 +1,4 @@
-// D:\B2B\app\api\v1\user\auth\register\route.ts
+// D:\B2B\app\api\v1\user\auth\route.ts
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/app/config/db";
 import User from "@/app/models/User";
@@ -7,7 +7,7 @@ import { errorHandler } from "@/app/lib/errors/errorHandler";
 import { registerSchema } from "@/app/utils/validation";
 import { ZodErrorHandler } from "@/app/lib/helpers/validationHelper";
 
-// POST - REGISTER USER
+// POST - REGISTER USER / LOGIN USER BOTH
 export async function POST(request: NextRequest) {
   try {
     await connectDB();
@@ -23,15 +23,15 @@ export async function POST(request: NextRequest) {
       throw new APIError(errorMessage, 400);
     }
 
-    const { mobile } = validationResult.data;
+    const { phone, name } = validationResult.data;
 
     // Check if user already exists
-    const existingUser = await User.findOne({ mobile });
+    const existingUser = await User.findOne({ phone });
 
     if (existingUser) {
       // If user exists, send new OTP
-      const otp = "1234"; // Fixed OTP for now
-      const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+      const otp = "123456"; // Fixed OTP for now
+      const otpExpiresAt = new Date(Date.now() + 1 * 60 * 1000); // 1 minutes
 
       existingUser.otp = otp;
       existingUser.otpExpiresAt = otpExpiresAt;
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
           status: true,
           message: "OTP sent successfully",
           data: {
-            mobile: existingUser.mobile,
+            phone: existingUser.phone,
             otpExpiresAt: existingUser.otpExpiresAt,
           },
         },
@@ -51,22 +51,22 @@ export async function POST(request: NextRequest) {
     }
 
     // Create new user
-    const otp = "1234"; // Fixed OTP for now
-    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const otp = "123456"; // Fixed OTP for now
+    const otpExpiresAt = new Date(Date.now() + 10* 60 * 1000); // 1 minutes
 
     const user = await User.create({
-      mobile,
+      phone,
+      name,
       otp,
       otpExpiresAt,
-      isProfileComplete: false,
     });
 
     return NextResponse.json(
       {
         status: true,
-        message: "User registered successfully. OTP sent to mobile number",
+        message: "User registered successfully. OTP sent to phone number",
         data: {
-          mobile: user.mobile,
+          phone: user.phone,
           otpExpiresAt: user.otpExpiresAt,
         },
       },

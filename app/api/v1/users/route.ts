@@ -143,7 +143,6 @@ export async function GET(request: NextRequest) {
         totalSpent: userStats.totalSpent,
         pendingOrders: userStats.pendingOrders,
         completedOrders: userStats.completedOrders,
-        isProfileComplete: user.isProfileComplete,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt
       };

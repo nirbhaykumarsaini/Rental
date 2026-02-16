@@ -3,11 +3,9 @@ import mongoose, { Document, Model, Schema } from "mongoose";
 
 export interface IUser {
   name?: string;
-  email?: string;
-  mobile: string;
+  phone: string;
   otp?: string;
   otpExpiresAt?: Date;
-  isProfileComplete: boolean;
 }
 
 export interface IUserDocument extends IUser, Document {}
@@ -19,17 +17,11 @@ const userSchema = new Schema<IUserDocument>(
       trim: true,
       minlength: [3, "Name must be at least 3 characters long"],
     },
-    mobile: {
+    phone: {
       type: String,
       required: [true, "Mobile number is required"],
       unique: true,
       match: [/^[0-9]{10}$/, "Please enter a valid 10-digit mobile number"],
-    },
-    email: {
-      type: String,
-      trim: true,
-      lowercase: true,
-      match: [/^\S+@\S+\.\S+$/, "Please enter a valid email address"],
     },
     otp: {
       type: String,
@@ -38,11 +30,7 @@ const userSchema = new Schema<IUserDocument>(
     otpExpiresAt: {
       type: Date,
       default: null,
-    },
-    isProfileComplete: {
-      type: Boolean,
-      default: false,
-    },
+    }
   },
   {
     timestamps: true,

@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       throw new APIError(errorMessage, 400);
     }
 
-    const { name, email, mobile } = validationResult.data;
+    const { name, phone } = validationResult.data;
 
     // Find user
     const user = await User.findById(userId);
@@ -37,47 +37,30 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if profile is already complete
-    if (user.isProfileComplete) {
-      throw new APIError(
-        "Profile is already complete. Use update-profile endpoint to modify",
-        400,
-      );
+
+    // Check if phone matches the authenticated user's phone
+    if (user.phone !== phone) {
+      throw new APIError("Phone number does not match your account", 400);
     }
 
-    // Check if mobile matches the authenticated user's mobile
-    if (user.mobile !== mobile) {
-      throw new APIError("Mobile number does not match your account", 400);
-    }
-
-    // Check if email is already in use by another user
-    const existingEmailUser = await User.findOne({
-      email,
+    // Check if phone is already in use by another user
+    const existingPhoneUser = await User.findOne({
+      phone,
       _id: { $ne: userId },
     });
 
-    if (existingEmailUser) {
-      throw new APIError("Email is already in use", 400);
+    if (existingPhoneUser) {
+      throw new APIError("Phone Number is already in use", 400);
     }
 
     // Update user profile
     user.name = name;
-    user.email = email;
-    user.isProfileComplete = true;
     await user.save();
 
     return NextResponse.json(
       {
         status: true,
         message: "Profile completed successfully",
-        data: {
-          user: {
-            _id: user._id,
-            name: user.name,
-            email: user.email,
-            mobile: user.mobile,
-            isProfileComplete: user.isProfileComplete,
-          },
-        },
       },
       { status: 200 },
     );

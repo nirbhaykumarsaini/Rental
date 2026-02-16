@@ -28,9 +28,7 @@ export async function GET(request: NextRequest) {
         user: {
           _id: user._id,
           name: user.name,
-          email: user.email,
-          mobile: user.mobile,
-          isProfileComplete: user.isProfileComplete,
+          phone: user.phone,
           createdAt: user.createdAt,
           updatedAt: user.updatedAt
         }

@@ -24,10 +24,10 @@ export async function POST(request: NextRequest) {
       throw new APIError(errorMessage, 400);
     }
 
-    const { mobile, otp } = validationResult.data;
+    const { phone, otp } = validationResult.data;
 
-    // Find user by mobile
-    const user = await User.findOne({ mobile });
+    // Find user by phone
+    const user = await User.findOne({ phone });
 
     if (!user) {
       throw new APIError('User not found', 404);
@@ -63,10 +63,8 @@ export async function POST(request: NextRequest) {
         token,
         user: {
           _id: user._id,
-          mobile: user.mobile,
+          phone: user.phone,
           name: user.name,
-          email: user.email,
-          isProfileComplete: user.isProfileComplete
         }
       }
     }, { status: 200 });

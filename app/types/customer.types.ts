@@ -102,7 +102,6 @@ export interface Customer {
   };
   stats?: OrderStats;
   notes?: CustomerNote[];
-  isProfileComplete?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
   tags?: string[];

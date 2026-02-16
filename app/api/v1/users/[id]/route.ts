@@ -223,7 +223,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       pendingOrders: stats.pendingOrders,
       completedOrders: stats.completedOrders,
       cancelledOrders: stats.cancelledOrders,
-      isProfileComplete: user.isProfileComplete,
       orderFrequency: getOrderFrequency(),
       addresses: formattedAddresses,
       defaultAddress: defaultAddress || (formattedAddresses.length > 0 ? formattedAddresses[0] : null),

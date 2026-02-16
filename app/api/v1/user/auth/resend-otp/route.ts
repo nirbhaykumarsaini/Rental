@@ -23,18 +23,18 @@ export async function POST(request: NextRequest) {
           throw new APIError(errorMessage, 400);
         }
 
-    const { mobile } = validationResult.data;
+    const { phone } = validationResult.data;
 
-    // Find user by mobile
-    const user = await User.findOne({ mobile });
+    // Find user by phone
+    const user = await User.findOne({ phone });
 
     if (!user) {
       throw new APIError('User not found', 404);
     }
 
     // Generate new OTP
-    const otp = '1234'; // Fixed OTP for now
-    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const otp = '123456'; // Fixed OTP for now
+    const otpExpiresAt = new Date(Date.now() + 1 * 60 * 1000); // 1 minutes
 
     user.otp = otp;
     user.otpExpiresAt = otpExpiresAt;
@@ -43,10 +43,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       status: true,
       message: 'OTP sent successfully',
-      data: {
-        mobile: user.mobile,
-        otpExpiresAt: user.otpExpiresAt
-      }
     }, { status: 200 });
 
   } catch (error: any) {
