@@ -321,7 +321,7 @@ export async function GET(request: NextRequest) {
 }
 
 // GET product by ID
-export async function GET_byId(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET_byId(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
     
@@ -349,7 +349,7 @@ export async function GET_byId(request: NextRequest, { params }: { params: { id:
 }
 
 // PUT - Update product
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
     
@@ -486,7 +486,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 }
 
 // DELETE - Delete product
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
     
@@ -514,7 +514,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 }
 
 // GET product by slug
-export async function GET_bySlug(request: NextRequest, { params }: { params: { slug: string } }) {
+export async function GET_bySlug(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   try {
     await connectDB();
     
