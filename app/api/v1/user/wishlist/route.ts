@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
     } else {
       // Check if product already in wishlist
       const existingItem = wishlist.items.find(
-        item => item.productId.toString() === productId
+        (item:any) => item.productId.toString() === productId
       );
 
       if (!existingItem) {
