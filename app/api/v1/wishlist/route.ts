@@ -167,19 +167,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Optional: Check if variant exists
-    if (variantId && product.variants) {
-      const variantExists = product.variants.some((v: any) => 
-        v._id.toString() === variantId
-      );
-      if (!variantExists) {
-        return NextResponse.json(
-          { status: false, message: 'Variant not found' },
-          { status: 400 }
-        );
-      }
-    }
-
     // Find or create default wishlist for user
     let wishlist = await Wishlist.findOne({ userId, isDefault: true });
     
