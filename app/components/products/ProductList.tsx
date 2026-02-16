@@ -305,7 +305,7 @@ export function ProductList({
               >
                 <option value="All">All Categories</option>
                 {categories.map(category => (
-                  <option key={category._id} value={category.slug}>
+                  <option key={category._id} value={category.name}>
                     {category.name}
                   </option>
                 ))}
