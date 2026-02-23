@@ -7,15 +7,16 @@ import { authenticate } from '@/app/middlewares/authMiddleware';
 // GET - Get order by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
 
     const { userId } = await authenticate(request);
+    const { id } = await params;
 
     const order = await Order.findOne({
-      _id: params.id,
+      _id:id,
       userId
     }).lean();
 
