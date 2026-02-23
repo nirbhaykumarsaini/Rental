@@ -1,82 +1,69 @@
+// D:\B2B\app\models\Order.ts
 import mongoose, { Document, Model, Schema } from "mongoose";
-import APIError from "../lib/errors/APIError";
 
-// Order Item Interface
 export interface IOrderItem {
   productId: mongoose.Types.ObjectId;
-  productName: string;
-  // productSlug: string;
-  variantId?: string;
-  sizeId?: string;
-  color?: string;
-  size?: string;
-  sku?: string;
+  name: string;
+  image: string;
+  price: number;
+  rentalDays: number;
+  rentalPrice: number;
+  startDate: Date;
+  endDate: Date;
+  selectedSize: string;
+  selectedColor: string;
+  measurements: {
+    chest: string;
+    waist: string;
+    hip: string;
+  };
   quantity: number;
-  unitPrice: number;
-  totalPrice: number;
-  image?: string;
 }
 
-// Shipping Address Interface
-export interface IShippingAddress {
-  first_name: string;
-  last_name: string;
+export interface IAddress {
+  name: string;
+  phone: string;
   address: string;
+  landmark?: string;
   city: string;
   state: string;
-  pin_code: string;
-  phone_number: string;
-  country: string;
-  address_type?: string;
+  pincode: string;
+  type: "home" | "work" | "other";
+  isDefault?: boolean;
 }
 
-// Order Status Enum
-export enum OrderStatus {
-  PENDING = "pending",
-  CONFIRMED = "confirmed",
-  PROCESSING = "processing",
-  SHIPPED = "shipped",
-  DELIVERED = "delivered",
-  CANCELLED = "cancelled",
-  REFUNDED = "refunded",
-}
-
-// Payment Method Enum
-export enum PaymentMethod {
-  COD = "cod", // Cash on Delivery only
-}
-
-// Payment Status Enum
-export enum PaymentStatus {
-  PENDING = "pending",
-  PAID = "paid",
-  FAILED = "failed",
-  REFUNDED = "refunded",
-}
-
-// Order Interface
 export interface IOrder {
+  orderNumber: string;
   userId: mongoose.Types.ObjectId;
-  orderNumber: string; // Unique order identifier
   items: IOrderItem[];
-  shippingAddress: IShippingAddress;
-  billingAddress?: IShippingAddress; // Optional, can be same as shipping
-  subtotal: number; // Sum of all items' totalPrice
-  shippingCharge: number;
-  discount?: number;
-  tax?: number;
-  totalAmount: number; // subtotal + shippingCharge + tax - discount
-  paymentMethod: PaymentMethod;
-  paymentStatus: PaymentStatus;
-  orderStatus: OrderStatus;
-  notes?: string; // Customer notes
-  adminNotes?: string; // Internal notes
-  expectedDeliveryDate?: Date;
-  deliveredAt?: Date;
-  cancelledAt?: Date;
-  cancelledReason?: string;
-  trackingNumber?: string;
-  courierName?: string;
+  address: IAddress;
+  paymentMethod: "cod" | "upi" | "card";
+  paymentStatus: "pending" | "paid" | "failed";
+  orderStatus:
+    | "pending"
+    | "confirmed"
+    | "processing"
+    | "shipped"
+    | "delivered"
+    | "cancelled"
+    | "returned";
+  subtotal: number;
+  discount: number;
+  deliveryFee: number;
+  total: number;
+  deliveryDate: Date;
+  returnDate: Date;
+  paymentDetails?: {
+    transactionId?: string;
+    paidAt?: Date;
+    paymentMethodDetails?: string;
+  };
+  trackingDetails?: {
+    trackingNumber?: string;
+    carrier?: string;
+    shippedAt?: Date;
+    deliveredAt?: Date;
+  };
 }
 
 export interface IOrderDocument extends IOrder, Document {
@@ -84,215 +71,96 @@ export interface IOrderDocument extends IOrder, Document {
   updatedAt: Date;
 }
 
-// Order Item Schema
-const orderItemSchema = new Schema<IOrderItem>(
-  {
-    productId: {
-      type: Schema.Types.ObjectId,
-      ref: "Product",
-      required: [true, "Product ID is required"],
-    },
-    productName: {
-      type: String,
-      required: [true, "Product name is required"],
-      trim: true,
-    },
-    // productSlug: {
-    //   type: String,
-    //   required: [true, "Product slug is required"],
-    //   trim: true,
-    // },
-    variantId: {
-      type: String,
-      default: null,
-    },
-    sizeId: {
-      type: String,
-      default: null,
-    },
-    color: {
-      type: String,
-      trim: true,
-    },
-    size: {
-      type: String,
-      trim: true,
-    },
-    sku: {
-      type: String,
-      trim: true,
-    },
-    quantity: {
-      type: Number,
-      required: [true, "Quantity is required"],
-      min: [1, "Quantity must be at least 1"],
-    },
-    unitPrice: {
-      type: Number,
-      required: [true, "Unit price is required"],
-      min: [0, "Unit price cannot be negative"],
-    },
-    totalPrice: {
-      type: Number,
-      required: [true, "Total price is required"],
-      min: [0, "Total price cannot be negative"],
-    },
-    image: {
-      type: String,
-    },
+const orderItemSchema = new Schema<IOrderItem>({
+  productId: {
+    type: Schema.Types.ObjectId,
+    ref: "Product",
+    required: true,
   },
-  { _id: true },
-);
-
-// Shipping Address Schema
-const shippingAddressSchema = new Schema<IShippingAddress>({
-  first_name: {
-    type: String,
-    required: [true, "First name is required"],
-    trim: true,
+  name: { type: String, required: true },
+  image: { type: String, required: true },
+  price: { type: Number, required: true },
+  rentalDays: { type: Number, required: true },
+  rentalPrice: { type: Number, required: true },
+  startDate: { type: Date, required: true },
+  endDate: { type: Date, required: true },
+  selectedSize: { type: String },
+  selectedColor: { type: String },
+  measurements: {
+    chest: String,
+    waist: String,
+    hip: String,
   },
-  last_name: {
-    type: String,
-    required: [true, "Last name is required"],
-    trim: true,
-  },
-  address: {
-    type: String,
-    required: [true, "Address is required"],
-    trim: true,
-  },
-  city: {
-    type: String,
-    required: [true, "City is required"],
-    trim: true,
-  },
-  state: {
-    type: String,
-    required: [true, "State is required"],
-    trim: true,
-  },
-  pin_code: {
-    type: String,
-    required: [true, "Pincode is required"],
-    trim: true,
-  },
-  phone_number: {
-    type: String,
-    required: [true, "Phone number is required"],
-    trim: true,
-  },
-  country: {
-    type: String,
-    default: "India",
-    trim: true,
-  },
-  address_type: {
-    type: String,
-    default: "home",
-    trim: true,
-  },
+  quantity: { type: Number, required: true, default: 1 },
 });
 
-// Main Order Schema
+const addressSchema = new Schema<IAddress>({
+  name: { type: String, required: true },
+  phone: { type: String, required: true },
+  address: { type: String, required: true },
+  landmark: String,
+  city: { type: String, required: true },
+  state: { type: String, required: true },
+  pincode: { type: String, required: true },
+  type: { type: String, enum: ["home", "work", "other"], default: "home" },
+  isDefault: { type: Boolean, default: false },
+});
+
 const orderSchema = new Schema<IOrderDocument>(
   {
+    orderNumber: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
     userId: {
       type: Schema.Types.ObjectId,
       ref: "User",
-      required: [true, "User ID is required"],
+      required: true,
       index: true,
     },
-    orderNumber: {
-      type: String,
-      required: [true, "Order number is required"],
-      unique: true,
-      trim: true,
-      uppercase: true,
-    },
     items: [orderItemSchema],
-    shippingAddress: {
-      type: shippingAddressSchema,
-      required: [true, "Shipping address is required"],
-    },
-    billingAddress: {
-      type: shippingAddressSchema,
-      default: null,
-    },
-    subtotal: {
-      type: Number,
-      required: [true, "Subtotal is required"],
-      min: [0, "Subtotal cannot be negative"],
-    },
-    shippingCharge: {
-      type: Number,
-      required: [true, "Shipping charge is required"],
-      min: [0, "Shipping charge cannot be negative"],
-      default: 0,
-    },
-    discount: {
-      type: Number,
-      min: [0, "Discount cannot be negative"],
-      default: 0,
-    },
-    tax: {
-      type: Number,
-      min: [0, "Tax cannot be negative"],
-      default: 0,
-    },
-    totalAmount: {
-      type: Number,
-      required: [true, "Total amount is required"],
-      min: [0, "Total amount cannot be negative"],
-    },
+    address: addressSchema,
     paymentMethod: {
       type: String,
-      enum: Object.values(PaymentMethod),
-      default: PaymentMethod.COD,
-      required: [true, "Payment method is required"],
+      enum: ["cod", "upi", "card"],
+      required: true,
     },
     paymentStatus: {
       type: String,
-      enum: Object.values(PaymentStatus),
-      default: PaymentStatus.PENDING,
-      required: [true, "Payment status is required"],
+      enum: ["pending", "paid", "failed"],
+      default: "pending",
     },
     orderStatus: {
       type: String,
-      enum: Object.values(OrderStatus),
-      default: OrderStatus.PENDING,
-      required: [true, "Order status is required"],
+      enum: [
+        "pending",
+        "confirmed",
+        "processing",
+        "shipped",
+        "delivered",
+        "cancelled",
+        "returned",
+      ],
+      default: "pending",
     },
-    notes: {
-      type: String,
-      trim: true,
-      maxlength: [500, "Notes cannot exceed 500 characters"],
+    subtotal: { type: Number, required: true, min: 0 },
+    discount: { type: Number, default: 0, min: 0 },
+    deliveryFee: { type: Number, default: 0, min: 0 },
+    total: { type: Number, required: true, min: 0 },
+    deliveryDate: { type: Date, required: true },
+    returnDate: { type: Date, required: true },
+    paymentDetails: {
+      transactionId: String,
+      paidAt: Date,
+      paymentMethodDetails: String,
     },
-    adminNotes: {
-      type: String,
-      trim: true,
-      maxlength: [500, "Admin notes cannot exceed 500 characters"],
-    },
-    expectedDeliveryDate: {
-      type: Date,
-    },
-    deliveredAt: {
-      type: Date,
-    },
-    cancelledAt: {
-      type: Date,
-    },
-    cancelledReason: {
-      type: String,
-      trim: true,
-      maxlength: [200, "Cancelled reason cannot exceed 200 characters"],
-    },
-    trackingNumber: {
-      type: String,
-      trim: true,
-    },
-    courierName: {
-      type: String,
-      trim: true,
+    trackingDetails: {
+      trackingNumber: String,
+      carrier: String,
+      shippedAt: Date,
+      deliveredAt: Date,
     },
   },
   {
@@ -303,74 +171,54 @@ const orderSchema = new Schema<IOrderDocument>(
 );
 
 // Indexes for better query performance
-orderSchema.index({ orderNumber: 1 }, { unique: true });
+orderSchema.index({ userId: 1, orderStatus: 1 });
 orderSchema.index({ userId: 1, createdAt: -1 });
-orderSchema.index({ orderStatus: 1 });
-orderSchema.index({ paymentStatus: 1 });
-orderSchema.index({ createdAt: -1 });
-orderSchema.index({ "items.productId": 1 });
-orderSchema.index({ "shippingAddress.phone_number": 1 });
-orderSchema.index({ orderNumber: "text", "items.productName": "text" });
+orderSchema.index({ orderNumber: 1 }, { unique: true });
+orderSchema.index({ deliveryDate: 1 });
+orderSchema.index({ returnDate: 1 });
 
-// Virtual for item count
-orderSchema.virtual("itemCount").get(function () {
-  return this.items.reduce((total, item) => total + item.quantity, 0);
+// Virtual for rental duration
+orderSchema.virtual("rentalDuration").get(function () {
+  if (!this.deliveryDate || !this.returnDate) return 0;
+  const diffTime = Math.abs(
+    this.returnDate.getTime() - this.deliveryDate.getTime(),
+  );
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 });
 
-// Static method to find orders by user
-orderSchema.statics.findByUserId = function (
-  userId: string | mongoose.Types.ObjectId,
-) {
-  return this.find({ userId }).sort({ createdAt: -1 });
-};
-
-// Static method to get order statistics
-orderSchema.statics.getOrderStats = async function (
-  userId?: string | mongoose.Types.ObjectId,
-) {
-  const matchStage: any = {};
-  if (userId) {
-    matchStage.userId = new mongoose.Types.ObjectId(userId.toString());
-  }
-
-  const stats = await this.aggregate([
-    { $match: matchStage },
-    {
-      $group: {
-        _id: null,
-        totalOrders: { $sum: 1 },
-        totalAmount: { $sum: "$totalAmount" },
-        pendingOrders: {
-          $sum: {
-            $cond: [{ $eq: ["$orderStatus", OrderStatus.PENDING] }, 1, 0],
-          },
-        },
-        completedOrders: {
-          $sum: {
-            $cond: [{ $eq: ["$orderStatus", OrderStatus.DELIVERED] }, 1, 0],
-          },
-        },
-        cancelledOrders: {
-          $sum: {
-            $cond: [{ $eq: ["$orderStatus", OrderStatus.CANCELLED] }, 1, 0],
-          },
-        },
-      },
-    },
-  ]);
-
+// Virtual for isActive
+orderSchema.virtual("isActive").get(function () {
+  const activeStatuses = ["confirmed", "processing", "shipped", "delivered"];
   return (
-    stats[0] || {
-      totalOrders: 0,
-      totalAmount: 0,
-      pendingOrders: 0,
-      completedOrders: 0,
-      cancelledOrders: 0,
-    }
+    activeStatuses.includes(this.orderStatus) &&
+    new Date(this.returnDate) >= new Date()
   );
+});
+
+// Pre-save middleware
+orderSchema.pre("save", function () {
+  // Ensure total is consistent
+  this.total = this.subtotal - this.discount + this.deliveryFee;
+});
+
+// Static method to get active rentals for a user
+orderSchema.statics.getActiveRentals = function (userId: string) {
+  const activeStatuses = ["confirmed", "processing", "shipped", "delivered"];
+  return this.find({
+    userId,
+    orderStatus: { $in: activeStatuses },
+    returnDate: { $gte: new Date() },
+  }).sort({ deliveryDate: 1 });
 };
 
-const Order =
+// Static method to generate order number
+orderSchema.statics.generateOrderNumber = function () {
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+  return `ORD-${timestamp}-${random}`;
+};
+
+const Order: Model<IOrderDocument> =
   mongoose.models.Order || mongoose.model<IOrderDocument>("Order", orderSchema);
 
 export default Order;

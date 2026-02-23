@@ -1,90 +1,76 @@
+// D:\B2B\app\models\Cart.ts
 import mongoose, { Document, Model, Schema } from 'mongoose';
 
 export interface ICartItem {
   productId: mongoose.Types.ObjectId;
-  variantId?: string; // Reference to variant _id
-  sizeId?: string;    // Reference to size _id
+  name: string;
+  slug: string;
+  image: string;
+  price: number;
+  rentalDays: number;
+  rentalPrice: number;
+  startDate: Date;
+  endDate: Date;
+  selectedSize?: string;
+  selectedColor?: string;
+  measurements?: {
+    chest: string;
+    waist: string;
+    hip: string;
+  };
   quantity: number;
-  price: number;      // Price at time of adding to cart
-  name: string;       // Product name at time of adding
-  color?: string;     // Variant color
-  size?: string;      // Size value (e.g., "M", "L")
-  image?: string;     // Main image for display
 }
 
 export interface ICart {
   userId: mongoose.Types.ObjectId;
   items: ICartItem[];
-  totalItems: number;
-  totalPrice: number;
+  subtotal: number;
+  total: number;
+  itemCount: number;
+}
+
+export interface ICartDocument extends ICart, Document {
+  createdAt: Date;
   updatedAt: Date;
 }
 
-export interface ICartDocument extends ICart, Document {}
-
 const cartItemSchema = new Schema<ICartItem>({
-  productId: {
-    type: Schema.Types.ObjectId,
-    ref: 'Product',
-    required: [true, 'Product ID is required']
+  productId: { 
+    type: Schema.Types.ObjectId, 
+    ref: 'Product', 
+    required: true 
   },
-  variantId: {
-    type: String,
-    default: null
+  name: { type: String, required: true },
+  slug: { type: String, required: true },
+  image: { type: String, required: true },
+  price: { type: Number, required: true },
+  rentalDays: { type: Number, required: true },
+  rentalPrice: { type: Number, required: true },
+  startDate: { type: Date, required: true },
+  endDate: { type: Date, required: true },
+  selectedSize: String,
+  selectedColor: String,
+  measurements: {
+    chest: String,
+    waist: String,
+    hip: String
   },
-  sizeId: {
-    type: String,
-    default: null
-  },
-  quantity: {
-    type: Number,
-    required: [true, 'Quantity is required'],
-    min: [1, 'Quantity must be at least 1'],
-    default: 1
-  },
-  price: {
-    type: Number,
-    required: [true, 'Price is required'],
-    min: [0, 'Price cannot be negative']
-  },
-  name: {
-    type: String,
-    required: [true, 'Product name is required'],
-    trim: true
-  },
-  color: {
-    type: String,
-    trim: true
-  },
-  size: {
-    type: String,
-    trim: true
-  },
-  image: {
-    type: String
-  }
-}, { _id: true });
+  quantity: { type: Number, required: true, default: 1 }
+});
 
 const cartSchema = new Schema<ICartDocument>(
   {
-    userId: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-      required: [true, 'User ID is required'],
+    userId: { 
+      type: Schema.Types.ObjectId, 
+      ref: 'User', 
+      required: true,
       unique: true,
-      index: true
+      index: true 
     },
     items: [cartItemSchema],
-    totalItems: {
-      type: Number,
-      default: 0,
-      min: 0
-    },
-    totalPrice: {
-      type: Number,
-      default: 0,
-      min: 0
-    }
+    subtotal: { type: Number, required: true, default: 0 },
+    total: { type: Number, required: true, default: 0 },
+    itemCount: { type: Number, required: true, default: 0 }
   },
   {
     timestamps: true,
@@ -93,27 +79,13 @@ const cartSchema = new Schema<ICartDocument>(
   }
 );
 
-// Middleware to update totals before saving
+// Pre-save middleware to calculate totals
 cartSchema.pre('save', function() {
-  this.totalItems = this.items.reduce((total, item) => total + item.quantity, 0);
-  this.totalPrice = this.items.reduce((total, item) => total + (item.price * item.quantity), 0);
-  this.updatedAt = new Date();
+  this.itemCount = this.items.reduce((sum, item) => sum + item.quantity, 0);
+  this.subtotal = this.items.reduce((sum, item) => sum + (item.rentalPrice * item.quantity), 0);
+  this.total = this.subtotal; // Add tax/discount logic here if needed
 });
 
-// Indexes
-cartSchema.index({ userId: 1 }, { unique: true });
-cartSchema.index({ 'items.productId': 1 });
-cartSchema.index({ updatedAt: -1 });
-
-// Static method to find cart by user ID
-cartSchema.statics.findByUserId = function(userId: string | mongoose.Types.ObjectId) {
-  return this.findOne({ userId }).populate({
-    path: 'items.productId',
-    select: 'name slug images variants isPublished status',
-    model: 'Product'
-  });
-};
-
-const Cart = mongoose.models.Cart || mongoose.model<ICartDocument>('Cart', cartSchema);
+const Cart: Model<ICartDocument> = mongoose.models.Cart || mongoose.model<ICartDocument>('Cart', cartSchema);
 
 export default Cart;
