@@ -176,60 +176,7 @@ export default function ProductsPage() {
               <p className="text-gray-600 mt-1">Manage your product catalog and rental inventory</p>
             </div>
           </div>
-        </div>
-
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Package className="w-5 h-5 text-blue-600" />
-              </div>
-              <span className="text-2xl font-bold text-gray-900">{stats.totalProducts}</span>
-            </div>
-            <h3 className="text-sm font-medium text-gray-600">Total Products</h3>
-          </div>
-
-          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-              </div>
-              <span className="text-2xl font-bold text-green-600">{stats.available}</span>
-            </div>
-            <h3 className="text-sm font-medium text-gray-600">Available</h3>
-          </div>
-
-          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <XCircle className="w-5 h-5 text-red-600" />
-              </div>
-              <span className="text-2xl font-bold text-red-600">{stats.unavailable}</span>
-            </div>
-            <h3 className="text-sm font-medium text-gray-600">Unavailable</h3>
-          </div>
-
-          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <Star className="w-5 h-5 text-yellow-600" />
-              </div>
-              <span className="text-2xl font-bold text-yellow-600">{stats.featured}</span>
-            </div>
-            <h3 className="text-sm font-medium text-gray-600">Featured</h3>
-          </div>
-
-          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Clock className="w-5 h-5 text-purple-600" />
-              </div>
-              <span className="text-2xl font-bold text-purple-600">{stats.newArrivals}</span>
-            </div>
-            <h3 className="text-sm font-medium text-gray-600">New Arrivals</h3>
-          </div>
-        </div>
+        </div>        
 
         {/* Category Breakdown */}
         {stats.byCategory && Object.keys(stats.byCategory).length > 0 && (

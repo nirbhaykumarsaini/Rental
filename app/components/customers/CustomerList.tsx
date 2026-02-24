@@ -1,31 +1,33 @@
-// app/components/customers/CustomerList.tsx
+// D:\B2B\app\components\customers\CustomerList.tsx
 'use client';
 
 import { useState } from 'react';
 import { Customer } from '@/app/types/customer.types';
-import { 
-  Eye, 
-  Mail, 
-  Phone, 
-  MoreVertical, 
+import {
+  Eye,
+  Mail,
+  Phone,
+  MoreVertical,
   Star,
   Clock,
-  UserX,
   CheckCircle,
-  MessageSquare,
   Users,
   ChevronLeft,
   ChevronRight,
   Loader2,
-  Filter,
-  TrendingUp,
   Package,
   DollarSign,
-  Edit2,
-  Trash2,
+  Calendar,
+  MapPin,
+  Tag,
+  User,
   Shield,
-  UserCheck,
-  UserMinus
+  Award,
+  TrendingUp,
+  MessageSquare,
+  Filter,
+  Download,
+  RefreshCw
 } from 'lucide-react';
 
 interface CustomerListProps {
@@ -33,48 +35,37 @@ interface CustomerListProps {
   loading: boolean;
   onViewCustomer: (customer: Customer) => void;
   onEditCustomer?: (customer: Customer) => void;
-  onDeleteCustomer?: (customerId: string) => void;
   onPageChange: (page: number) => void;
   currentPage: number;
   totalCustomers: number;
   totalPages?: number;
   onStatusChange?: (customerId: string, status: Customer['status']) => void;
-  onTierChange?: (customerId: string, tier: Customer['tier']) => void;
+  onRefresh?: () => void;
 }
 
-export function CustomerList({ 
-  customers, 
-  loading, 
-  onViewCustomer, 
+export function CustomerList({
+  customers,
+  loading,
+  onViewCustomer,
   onEditCustomer,
-  onDeleteCustomer,
-  onPageChange, 
+  onPageChange,
   currentPage,
   totalCustomers,
   totalPages = 1,
   onStatusChange,
-  onTierChange
+  onRefresh
 }: CustomerListProps) {
   const [selectedCustomers, setSelectedCustomers] = useState<string[]>([]);
   const [selectedTier, setSelectedTier] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
-  const [isBulkActionLoading, setIsBulkActionLoading] = useState(false);
   const [statusUpdateId, setStatusUpdateId] = useState<string | null>(null);
-  const [tierUpdateId, setTierUpdateId] = useState<string | null>(null);
-
-  const getTierColor = (tier: Customer['tier']) => {
-    switch (tier) {
-      case 'vip': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'premium': return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'regular': return 'bg-gray-100 text-gray-800 border-gray-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
+  const [showFilters, setShowFilters] = useState(false);
 
   const getStatusColor = (status: Customer['status']) => {
     switch (status) {
       case 'active': return 'bg-green-100 text-green-800 border-green-200';
       case 'inactive': return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'blocked': return 'bg-red-100 text-red-800 border-red-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
@@ -83,74 +74,8 @@ export function CustomerList({
     switch (status) {
       case 'active': return <CheckCircle className="w-3 h-3" />;
       case 'inactive': return <Clock className="w-3 h-3" />;
-      default: return <Clock className="w-3 h-3" />;
-    }
-  };
-
-  const getTierIcon = (tier: Customer['tier']) => {
-    switch (tier) {
-      case 'vip': return <Star className="w-3 h-3" />;
-      case 'premium': return <Star className="w-3 h-3" />;
-      default: return null;
-    }
-  };
-
-  const handleSelectCustomer = (customerId: string) => {
-    setSelectedCustomers(prev =>
-      prev.includes(customerId)
-        ? prev.filter(id => id !== customerId)
-        : [...prev, customerId]
-    );
-  };
-
-  const handleSelectAll = () => {
-    if (selectedCustomers.length === filteredCustomers.length) {
-      setSelectedCustomers([]);
-    } else {
-      setSelectedCustomers(filteredCustomers.map(c => c.id));
-    }
-  };
-
-  const handleStatusUpdate = async (customerId: string, status: Customer['status']) => {
-    if (!onStatusChange) return;
-    
-    setStatusUpdateId(customerId);
-    try {
-      await onStatusChange(customerId, status);
-    } finally {
-      setStatusUpdateId(null);
-    }
-  };
-
-  const handleBulkAction = async (action: 'activate' | 'deactivate' | 'delete') => {
-    if (selectedCustomers.length === 0 || !onStatusChange || !onDeleteCustomer) return;
-    
-    setIsBulkActionLoading(true);
-    try {
-      if (action === 'delete') {
-        // Confirm deletion
-        if (!window.confirm(`Are you sure you want to delete ${selectedCustomers.length} customer(s)?`)) {
-          return;
-        }
-        
-        // Delete selected customers
-        for (const customerId of selectedCustomers) {
-          await onDeleteCustomer(customerId);
-        }
-      } else {
-        // Update status for selected customers
-        const newStatus = action === 'activate' ? 'active' : 'inactive';
-        for (const customerId of selectedCustomers) {
-          await onStatusChange(customerId, newStatus);
-        }
-      }
-      
-      // Clear selection after action
-      setSelectedCustomers([]);
-    } catch (error) {
-      console.error('Bulk action failed:', error);
-    } finally {
-      setIsBulkActionLoading(false);
+      case 'blocked': return <Shield className="w-3 h-3" />;
+      default: return <User className="w-3 h-3" />;
     }
   };
 
@@ -160,25 +85,12 @@ export function CustomerList({
     return true;
   });
 
-  const tierOptions = [
-    { value: 'all', label: 'All Tiers', count: customers.length },
-    { value: 'vip', label: 'VIP', count: customers.filter(c => c.tier === 'vip').length },
-    { value: 'premium', label: 'Premium', count: customers.filter(c => c.tier === 'premium').length },
-    { value: 'regular', label: 'Regular', count: customers.filter(c => c.tier === 'regular').length },
-  ];
-
-  const statusOptions = [
-    { value: 'all', label: 'All Status', count: customers.length },
-    { value: 'active', label: 'Active', count: customers.filter(c => c.status === 'active').length },
-    { value: 'inactive', label: 'Inactive', count: customers.filter(c => c.status === 'inactive').length },
-  ];
-
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     }).format(amount);
   };
 
@@ -192,24 +104,24 @@ export function CustomerList({
     });
   };
 
-  const calculateDaysSinceLastOrder = (lastOrderDate?: Date) => {
-    if (!lastOrderDate) return 'Never ordered';
-    
-    const today = new Date();
-    const lastOrder = new Date(lastOrderDate);
-    const diffTime = Math.abs(today.getTime() - lastOrder.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    return `${diffDays} days ago`;
+  const getInitials = (firstName: string, lastName: string) => {
+    return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
   };
 
-  const getCustomerValueBadge = (totalSpent: number) => {
-    if (totalSpent >= 50000) return 'High Value';
-    if (totalSpent >= 10000) return 'Medium Value';
-    if (totalSpent >= 1000) return 'Regular';
-    return 'New';
+  const getAvatarColor = (email?: string) => {
+    const colors = [
+      'bg-gradient-to-r from-blue-500 to-blue-600',
+      'bg-gradient-to-r from-purple-500 to-pink-500',
+      'bg-gradient-to-r from-green-500 to-emerald-500',
+      'bg-gradient-to-r from-orange-500 to-red-500',
+      'bg-gradient-to-r from-indigo-500 to-purple-500',
+      'bg-gradient-to-r from-teal-500 to-cyan-500'
+    ];
+    
+    if (!email) return colors[0];
+    
+    const index = email.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
+    return colors[index];
   };
 
   if (loading && customers.length === 0) {
@@ -235,9 +147,10 @@ export function CustomerList({
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">All Customers</h2>
                 <p className="text-sm text-gray-500">
-                  {filteredCustomers.length} of {customers.length} customers
+                  Showing {filteredCustomers.length} of {totalCustomers} customers
                 </p>
               </div>
+              
             </div>
             
           </div>
@@ -254,7 +167,7 @@ export function CustomerList({
                 Customer
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Tier & Status
+                Status
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Orders & Spending
@@ -262,97 +175,59 @@ export function CustomerList({
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Last Activity
               </th>
-   
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
-              </th>
+              </th> */}
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredCustomers.map((customer) => (
-              <tr 
+              <tr
                 key={customer.id}
                 className="hover:bg-gray-50 transition-colors"
               >
-
+                
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <div className="flex-shrink-0 h-12 w-12">
-                      <div className="h-12 w-12 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
-                        <span className="text-white font-medium text-lg">
-                          {customer.firstName.charAt(0)}{customer.lastName.charAt(0)}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="ml-4">
-                      <div className="flex items-center">
-                        <div 
-                          className="text-sm font-medium text-gray-900 hover:text-purple-700 cursor-pointer"
-                          onClick={() => onViewCustomer(customer)}
-                        >
-                          {customer.firstName} {customer.lastName}
-                        </div>
-                        {customer.tags && customer.tags.includes('wholesale') && (
-                          <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
-                            Wholesale
+                      {customer.avatar ? (
+                        <img
+                          src={customer.avatar}
+                          alt={`${customer.firstName} ${customer.lastName}`}
+                          className="h-12 w-12 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className={`h-12 w-12 rounded-full ${getAvatarColor(customer.email)} flex items-center justify-center`}>
+                          <span className="text-white font-medium text-lg">
+                            {getInitials(customer.firstName, customer.lastName)}
                           </span>
-                        )}
-                      </div>
-                      <div className="text-sm text-gray-500">{customer.email}</div>
-                      {customer.mobile && (
-                        <div className="flex items-center text-xs text-gray-500 mt-1">
-                          <Phone className="w-3 h-3 mr-1" />
-                          {customer.mobile}
                         </div>
                       )}
-                      <div className="text-xs text-gray-400 mt-1">
-                        ID: {customer.customerId}
+                    </div>
+                    <div className="ml-4">
+                      <div
+                        className="text-sm font-medium text-gray-900 hover:text-purple-700 cursor-pointer"
+                        onClick={() => onViewCustomer(customer)}
+                      >
+                        {customer.firstName} {customer.lastName}
                       </div>
+                      <div className="text-sm text-gray-500">{customer.mobile}</div>
+                     
                     </div>
                   </div>
                 </td>
+               
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="space-y-2">
-                    <div className="flex items-center">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getTierColor(customer.tier)}`}>
-                        {getTierIcon(customer.tier)}
-                        <span className="ml-1.5">
-                          {customer.tier.charAt(0).toUpperCase() + customer.tier.slice(1)}
+                    <div className="flex items-center space-x-2">
+                    
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(customer.status)}`}>
+                        {getStatusIcon(customer.status)}
+                        <span className="ml-1">
+                          {customer.status.charAt(0).toUpperCase() + customer.status.slice(1)}
                         </span>
                       </span>
-                    </div>
-                    <div className="flex items-center">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(customer.status)}`}>
-                        <span className="mr-1.5">{getStatusIcon(customer.status)}</span>
-                        {customer.status.charAt(0).toUpperCase() + customer.status.slice(1)}
-                      </span>
-                    </div>
-                    
-                    {/* Quick Actions */}
-                    <div className="flex flex-wrap gap-1">
-                      {customer.status !== 'active' && (
-                        <button
-                          onClick={() => handleStatusUpdate(customer.id, 'active')}
-                          disabled={statusUpdateId === customer.id}
-                          className="text-xs px-2 py-1 bg-green-50 text-green-600 rounded hover:bg-green-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                        >
-                          {statusUpdateId === customer.id ? (
-                            <Loader2 className="w-2 h-2 mr-1 animate-spin" />
-                          ) : (
-                            'Activate'
-                          )}
-                        </button>
-                      )}
-                      {customer.status !== 'inactive' && (
-                        <button
-                          onClick={() => handleStatusUpdate(customer.id, 'inactive')}
-                          disabled={statusUpdateId === customer.id}
-                          className="text-xs px-2 py-1 bg-gray-50 text-gray-600 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          Deactivate
-                        </button>
-                      )}
-                    </div>
+                    </div>                    
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -360,7 +235,7 @@ export function CustomerList({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center text-sm text-gray-700">
                         <Package className="w-4 h-4 mr-2 text-gray-400" />
-                        Orders
+                        Total Orders
                       </div>
                       <div className="font-medium text-gray-900">{customer.totalOrders}</div>
                     </div>
@@ -373,28 +248,41 @@ export function CustomerList({
                         {formatCurrency(customer.totalSpent)}
                       </div>
                     </div>
-                    {customer.totalOrders > 0 && (
-                      <div className="text-xs text-gray-500">
-                        Avg: {formatCurrency(customer.totalSpent / customer.totalOrders)}
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center text-sm text-gray-700">
+                        <Clock className="w-4 h-4 mr-2 text-gray-400" />
+                        Pending
+                      </div>
+                      <div className="text-sm text-yellow-600 font-medium">{customer.pendingOrders}</div>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="space-y-2">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Calendar className="w-4 h-4 mr-2 text-gray-400" />
+                      <span>Joined: {formatDate(customer.joinDate)}</span>
+                    </div>
+                    
+                    {customer.lastOrderDate && (
+                      <>
+                        <div className="flex items-center text-sm text-gray-600">
+                          <Package className="w-4 h-4 mr-2 text-gray-400" />
+                          <span>Last Order: {formatDate(customer.lastOrderDate)}</span>
+                        </div>
+                      </>
+                    )}
+
+                    {customer.lastLoginAt && (
+                      <div className="flex items-center text-xs text-gray-500">
+                        <Clock className="w-3 h-3 mr-1 text-gray-400" />
+                        <span>Last login: {formatDate(customer.lastLoginAt)}</span>
                       </div>
                     )}
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="space-y-1">
-                    <div className="text-sm text-gray-900">
-                      {formatDate(customer.lastOrderDate)}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {calculateDaysSinceLastOrder(customer.lastOrderDate)}
-                    </div>
-                    <div className="text-xs text-gray-400">
-                      Joined: {formatDate(customer.joinDate)}
-                    </div>
-                  </div>
-                </td>
-                
-                <td className="px-6 py-4 whitespace-nowrap">
+                {/* <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={() => onViewCustomer(customer)}
@@ -405,7 +293,7 @@ export function CustomerList({
                     </button>
                   
                   </div>
-                </td>
+                </td> */}
               </tr>
             ))}
           </tbody>
@@ -446,7 +334,7 @@ export function CustomerList({
                 <ChevronLeft className="w-4 h-4 mr-1" />
                 Previous
               </button>
-              
+
               <div className="flex items-center space-x-1">
                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                   const pageNumber = i + 1;
@@ -464,7 +352,7 @@ export function CustomerList({
                     </button>
                   );
                 })}
-                
+
                 {totalPages > 5 && (
                   <>
                     <span className="px-2 text-gray-500">...</span>
@@ -481,7 +369,7 @@ export function CustomerList({
                   </>
                 )}
               </div>
-              
+
               <button
                 onClick={() => onPageChange(currentPage + 1)}
                 disabled={currentPage >= totalPages}

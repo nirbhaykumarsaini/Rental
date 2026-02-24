@@ -38,7 +38,7 @@ export interface IOrder {
   items: IOrderItem[];
   address: IAddress;
   paymentMethod: "cod" | "upi" | "card";
-  paymentStatus: "pending" | "paid" | "failed";
+  paymentStatus: "pending" | "paid" | "failed" | 'refunded';
   orderStatus:
     | "pending"
     | "confirmed"
@@ -129,7 +129,7 @@ const orderSchema = new Schema<IOrderDocument>(
     },
     paymentStatus: {
       type: String,
-      enum: ["pending", "paid", "failed"],
+      enum: ["pending", "paid", "failed", 'refunded'],
       default: "pending",
     },
     orderStatus: {

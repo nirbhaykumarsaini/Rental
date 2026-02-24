@@ -328,7 +328,7 @@ function formatRecentActivities([orders, users, products]: any[]) {
       id: order._id.toString(),
       type: 'order',
       title: `New order #${order.orderNumber}`,
-      description: `Order value: ₹${order.totalAmount.toFixed(2)}`,
+      description: `Order value: ₹${order.totalAmount?.toFixed(2)}`,
       timestamp: order.createdAt
     });
   });

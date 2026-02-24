@@ -1,26 +1,27 @@
-// app/orders/page.tsx
+// D:\B2B\app\orders\page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { OrderList } from '@/app/components/orders/OrderList';
-import { OrderFilters } from '@/app/components/orders/OrderFilters';
 import { OrderDetailsModal } from '@/app/components/orders/OrderDetailsModal';
-import { Package, Filter } from 'lucide-react';
+import { Package, AlertCircle } from 'lucide-react';
 import { Order, OrderFilters as FiltersType } from '../types/order.types';
 
 export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [stats, setStats] = useState({
-    totalOrders: 0,
-    totalRevenue: 0,
-    pendingOrders: 0,
-    processingOrders: 0,
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPrevPage: false,
   });
+
   const [filters, setFilters] = useState<FiltersType>({
     page: 1,
     limit: 10,
@@ -42,11 +43,12 @@ export default function OrdersPage() {
         }
       });
 
-      const response = await fetch(`/api/v1/orders?${queryParams}`);
+      const response = await fetch(`/api/v1/user/orders?${queryParams}`);
       const data = await response.json();
 
       if (data.status) {
-        setOrders(data.data.orders);
+        setOrders(data.data);
+        setPagination(data.pagination);
       } else {
         setError(data.message || 'Failed to fetch orders');
       }
@@ -58,89 +60,47 @@ export default function OrdersPage() {
     }
   };
 
-  // Fetch stats
-  const fetchStats = async () => {
-    try {
-      const response = await fetch('/api/v1/orders/stats');
-      const data = await response.json();
-
-      if (data.status) {
-        setStats({
-          totalOrders: data.data.totalOrders || 0,
-          totalRevenue: data.data.totalRevenue || 0,
-          pendingOrders: data.data.pendingOrders || 0,
-          processingOrders: data.data.processingOrders || 0,
-        });
-      }
-    } catch (err) {
-      console.error('Error fetching stats:', err);
-    }
-  };
-
   // Initial load
   useEffect(() => {
     fetchOrders();
-    fetchStats();
-  }, [filters]);
+  }, [filters.page, filters.limit, filters.sortBy, filters.sortOrder]);
 
   const handleViewOrder = (order: Order) => {
     setSelectedOrder(order);
     setIsDetailsModalOpen(true);
   };
 
-  const handleUpdateStatus = async (orderId: string, status: Order['status']) => {
+  const handleUpdateStatus = async (orderId: string, status: Order['orderStatus']) => {
     try {
-      const response = await fetch(`/api/v1/orders/order/${orderId}`, {
+      const response = await fetch(`/api/v1/user/orders/${orderId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ orderStatus: status }),
       });
 
       const data = await response.json();
 
       if (data.status) {
-        // Refresh orders and stats
+        // Refresh orders
         fetchOrders();
-        fetchStats();
         
         // Update selected order if it's open
-        if (selectedOrder?.id === orderId) {
+        if (selectedOrder?._id === orderId) {
           setSelectedOrder({
             ...selectedOrder,
-            status,
+            orderStatus: status,
           });
         }
-
-        // Show success message
-        console.log('Order status updated successfully');
       } else {
         console.error('Failed to update order status:', data.message);
       }
     } catch (err) {
       console.error('Error updating order status:', err);
     }
-  };
+  }
 
-  const handleApplyFilters = (newFilters: any) => {
-    setFilters(prev => ({
-      ...prev,
-      ...newFilters,
-      page: 1, // Reset to first page when filters change
-    }));
-    setIsFiltersOpen(false);
-  };
-
-  const handleResetFilters = () => {
-    setFilters({
-      page: 1,
-      limit: 10,
-      sortBy: 'createdAt',
-      sortOrder: 'desc',
-    });
-    setIsFiltersOpen(false);
-  };
 
   const handlePageChange = (page: number) => {
     setFilters(prev => ({ ...prev, page }));
@@ -158,58 +118,37 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 p-6">
       {/* Page Header */}
-      <div className="mb-6 md:mb-8">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+      <div className="mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-blue-100 rounded-lg">
               <Package className="w-6 h-6 text-blue-600" />
             </div>
             <div>
-              <h1 className="text-2xl md:text-2xl font-bold text-gray-900">Orders</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
               <p className="text-gray-500">View and manage all customer orders</p>
             </div>
           </div>
           
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={() => setIsFiltersOpen(!isFiltersOpen)}
-              className="flex items-center justify-center px-4 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              <Filter className="w-4 h-4 mr-2" />
-              Filters
-            </button>
-          
-          </div>
         </div>
-      </div>
-
-      {/* Filters Section */}
-      {isFiltersOpen && (
-        <OrderFilters 
-          isOpen={isFiltersOpen}
-          onClose={() => setIsFiltersOpen(false)}
-          onApply={handleApplyFilters}
-          onReset={handleResetFilters}
-          initialFilters={filters}
-        />
-      )}
+      </div>      
 
       {/* Error State */}
       {error && (
         <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <div className="w-5 h-5 bg-red-500 rounded-full"></div>
+              <AlertCircle className="w-5 h-5 text-red-600" />
             </div>
-            <div className="ml-3">
+            <div className="ml-3 flex-1">
               <p className="text-sm text-red-700">{error}</p>
             </div>
             <div className="ml-auto pl-3">
               <button
                 onClick={fetchOrders}
-                className="text-sm text-red-700 hover:text-red-900"
+                className="text-sm text-red-700 hover:text-red-900 font-medium"
               >
                 Retry
               </button>
@@ -226,6 +165,8 @@ export default function OrdersPage() {
         onUpdateStatus={handleUpdateStatus}
         onPageChange={handlePageChange}
         currentPage={filters.page || 1}
+        totalPages={pagination.totalPages}
+        totalOrders={pagination.total}
       />
 
       {/* Order Details Modal */}
