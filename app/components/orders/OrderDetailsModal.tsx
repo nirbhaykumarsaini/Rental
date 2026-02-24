@@ -26,7 +26,8 @@ import {
   DollarSign,
   Home,
   Briefcase,
-  Tag
+  Tag,
+  XCircle
 } from 'lucide-react';
 
 interface OrderDetailsModalProps {

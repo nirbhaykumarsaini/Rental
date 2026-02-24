@@ -40,7 +40,7 @@ export interface Order {
   address: OrderAddress;
   paymentMethod: 'cod' | 'upi' | 'card';
   paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
-  orderStatus: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded';
+  orderStatus: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded' | string;
   subtotal: number;
   discount: number;
   deliveryFee: number;
