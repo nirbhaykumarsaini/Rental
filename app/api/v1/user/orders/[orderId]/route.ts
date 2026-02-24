@@ -172,12 +172,12 @@ export async function PUT(
 // DELETE - Cancel order
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { orderId: string } }
+  { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
     await connectDB();
 
-    const { orderId } = params;
+    const { orderId } = await params;
 
     // Validate orderId
     if (!orderId) {
